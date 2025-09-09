@@ -1,0 +1,26 @@
+# .gitignore
+
+# Node.js dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/**/*.dll
+src-tauri/**/*.exe
+src-tauri/**/*.app
+src-tauri/**/*.dmg
