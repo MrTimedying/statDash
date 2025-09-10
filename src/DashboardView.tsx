@@ -1,35 +1,83 @@
 import React, { useState } from 'react';
+import {
+  Button,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from '@mui/material';
+import {
+  Download as DownloadIcon
+} from '@mui/icons-material';
 import { useAppContext } from './ControlPanel';
-import PValueChart from './PValueChart';
-import CIChart from './CIChart';
-import { invoke } from '@tauri-apps/api/core';
+import { ResultsComparisonTable } from './components/ResultsComparisonTable';
+import { MultiPairResults, PairResult, SimulationResult } from './types/simulation.types';
 
 const DashboardView: React.FC = () => {
-  const { results, loading } = useAppContext();
-  const [activeTab, setActiveTab] = useState<'pvalue' | 'ci' | 'svalue'>('pvalue');
+  const { results, multiPairResults, mode, loading } = useAppContext();
+  const [selectedPairId, setSelectedPairId] = useState<string>('');
   const [exporting, setExporting] = useState(false);
 
+
   const handleExportCSV = async () => {
-    if (!results) return;
-    
+    if (!multiPairResults && !results) return;
+
     setExporting(true);
     try {
-      const csvContent: string = await invoke('export_simulation_csv', {
-        results: results
-      });
-      
+      let csvContent = '';
+
+      if (mode === 'multi' && multiPairResults) {
+        // Export all pairs data
+        csvContent = 'Pair Name,P-Value,Effect Size,CI Lower,CI Upper,S-Value,Significant\n';
+
+        multiPairResults.pairs_results.forEach((pairResult: PairResult) => {
+          pairResult.individual_results.forEach((result: SimulationResult) => {
+            csvContent += [
+              pairResult.pair_name,
+              result.p_value.toFixed(6),
+              result.effect_size.toFixed(6),
+              result.confidence_interval[0].toFixed(6),
+              result.confidence_interval[1].toFixed(6),
+              result.s_value.toFixed(6),
+              result.significant ? 'TRUE' : 'FALSE'
+            ].join(',') + '\n';
+          });
+        });
+      } else if (mode === 'single' && results) {
+        // Export single pair data
+        csvContent = 'P-Value,Effect Size,CI Lower,CI Upper,S-Value,Significant\n';
+
+        results.individual_results.forEach((result: SimulationResult) => {
+          csvContent += [
+            result.p_value.toFixed(6),
+            result.effect_size.toFixed(6),
+            result.confidence_interval[0].toFixed(6),
+            result.confidence_interval[1].toFixed(6),
+            result.s_value.toFixed(6),
+            result.significant ? 'TRUE' : 'FALSE'
+          ].join(',') + '\n';
+        });
+      }
+
       // Create a blob and download the file
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `simulation_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const modePrefix = mode === 'multi' ? 'multi_pair_' : 'single_pair_';
+      a.download = `${modePrefix}simulation_results_${timestamp}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       console.log('CSV exported successfully');
     } catch (error) {
       console.error('Export error:', error);
@@ -39,193 +87,155 @@ const DashboardView: React.FC = () => {
     }
   };
 
-  const renderTabContent = () => {
+  const renderContent = () => {
     if (loading) {
       return (
-        <div className="loading-content" style={{ 
-          textAlign: 'center', 
-          padding: '60px 20px',
-          color: '#666'
-        }}>
-          <div style={{ fontSize: '18px', marginBottom: '10px' }}>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
             Running Statistical Simulation...
-          </div>
-          <div style={{ fontSize: '14px' }}>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             This may take a few moments for large numbers of simulations
-          </div>
-        </div>
+          </Typography>
+        </Box>
       );
     }
 
-    if (!results) {
+    const hasResults = mode === 'multi' ? multiPairResults : results;
+    if (!hasResults) {
       return (
-        <div className="no-results" style={{ 
-          textAlign: 'center', 
-          padding: '60px 20px',
-          color: '#888'
-        }}>
-          <h3>No simulation results yet</h3>
-          <p>Set your simulation parameters in the sidebar and click "Run Simulation" to get started.</p>
-        </div>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+            No simulation results yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Set your parameters and run a simulation to get started.
+          </Typography>
+        </Box>
       );
     }
 
-    switch (activeTab) {
-      case 'pvalue':
-        return (
-          <div>
-            <PValueChart data={results} />
-            <div className="stats-summary" style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#f5f5f5',
-              borderRadius: '4px'
-            }}>
-              <h4>P-Value Distribution Summary</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <strong>Significant Results:</strong> {results.significant_count} / {results.total_count} 
-                  ({(results.significant_count / results.total_count * 100).toFixed(1)}%)
-                </div>
-                <div>
-                  <strong>Mean Effect Size:</strong> {results.mean_effect_size.toFixed(3)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-        
-      case 'ci':
-        return (
-          <div>
-            <CIChart data={results} />
-            <div className="stats-summary" style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              backgroundColor: '#f5f5f5',
-              borderRadius: '4px'
-            }}>
-              <h4>Confidence Interval Summary</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <strong>CI Coverage:</strong> {(results.ci_coverage * 100).toFixed(1)}%
-                </div>
-                <div>
-                  <strong>Mean CI Width:</strong> {results.mean_ci_width.toFixed(3)}
-                </div>
-                <div>
-                  <strong>Effect Size Range:</strong> {results.effect_size_ci[0].toFixed(3)} to {results.effect_size_ci[1].toFixed(3)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-        
-      case 'svalue':
-        return (
-          <div>
-            <div className="svalue-analysis" style={{ padding: '20px' }}>
-              <h3>S-Value Analysis</h3>
-              <p>S-Values represent the information content against the null hypothesis, measured in bits.</p>
-              
-              <div className="svalue-stats" style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                gap: '15px',
-                marginTop: '20px'
-              }}>
-                {results.individual_results.slice(0, 10).map((result, index) => (
-                  <div key={index} style={{ 
-                    padding: '15px', 
-                    backgroundColor: '#f9f9f9',
-                    borderRadius: '4px',
-                    border: '1px solid #ddd'
-                  }}>
-                    <div><strong>Simulation {index + 1}</strong></div>
-                    <div>P-value: {result.p_value.toFixed(4)}</div>
-                    <div>S-value: {result.s_value.toFixed(2)} bits</div>
-                    <div>Effect Size: {result.effect_size.toFixed(3)}</div>
-                    <div style={{ 
-                      color: result.significant ? '#4caf50' : '#f44336',
-                      fontWeight: 'bold'
-                    }}>
-                      {result.significant ? 'Significant' : 'Not Significant'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="svalue-interpretation" style={{ 
-                marginTop: '20px', 
-                padding: '15px', 
-                backgroundColor: '#e3f2fd',
-                borderRadius: '4px'
-              }}>
-                <h4>S-Value Interpretation</h4>
-                <ul>
-                  <li><strong>S = 1 bit:</strong> Evidence is 2:1 against null (p = 0.5)</li>
-                  <li><strong>S = 2 bits:</strong> Evidence is 4:1 against null (p = 0.25)</li>
-                  <li><strong>S = 3.32 bits:</strong> Evidence is 10:1 against null (p = 0.1)</li>
-                  <li><strong>S = 4.32 bits:</strong> Evidence is 20:1 against null (p = 0.05)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
-        
-      default:
-        return <div>Tab content not found</div>;
+    // For multi-pair mode, we need results to display
+    if (mode === 'multi' && !multiPairResults) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+            Multi-pair results not available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Please run a multi-pair simulation.
+          </Typography>
+        </Box>
+      );
     }
+
+    // Show the main results table for now
+    if (mode === 'multi' && multiPairResults) {
+      return <ResultsComparisonTable results={multiPairResults} />;
+    } else if (mode === 'single' && results) {
+      // For single-pair, show a simplified table
+      return (
+        <Card sx={{ mt: 1 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Single Pair Results
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ flex: '1 1 180px' }}>
+                <Typography variant="h5" color="primary">
+                  {results.total_count}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Total Simulations
+                </Typography>
+              </Box>
+              <Box sx={{ flex: '1 1 180px' }}>
+                <Typography variant="h5" color="primary">
+                  {results.significant_count}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Significant ({((results.significant_count / results.total_count) * 100).toFixed(1)}%)
+                </Typography>
+              </Box>
+              <Box sx={{ flex: '1 1 180px' }}>
+                <Typography variant="h5" color="primary">
+                  {results.mean_effect_size.toFixed(3)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Mean Effect Size
+                </Typography>
+              </Box>
+              <Box sx={{ flex: '1 1 180px' }}>
+                <Typography variant="h5" color="primary">
+                  {(results.ci_coverage * 100).toFixed(1)}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  CI Coverage
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="body2" color="text.secondary">
+          No results to display
+        </Typography>
+      </Box>
+    );
   };
 
+
   return (
-    <div className="dashboard-view">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Statistical Simulation Dashboard</h2>
-        {results && (
-          <button
-            onClick={handleExportCSV}
-            disabled={exporting || loading}
-            style={{
-              backgroundColor: exporting ? '#cccccc' : '#4caf50',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: exporting ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </button>
-        )}
-      </div>
-      
-      <div className="tabs">
-        <button
-          className={`tab-button ${activeTab === 'pvalue' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pvalue')}
-        >
-          P-Value Distribution
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'ci' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ci')}
-        >
-          Confidence Intervals
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'svalue' ? 'active' : ''}`}
-          onClick={() => setActiveTab('svalue')}
-        >
-          S-Value Analysis
-        </button>
-      </div>
-      
-      <div className="tab-content">
-        {renderTabContent()}
-      </div>
-    </div>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontSize: '16px', fontWeight: 600 }}>
+              Analysis Dashboard
+            </Typography>
+            {mode === 'multi' && multiPairResults && (
+              <FormControl size="small" sx={{ mt: 0.5, minWidth: 180 }}>
+                <InputLabel sx={{ fontSize: '11px' }}>Select pair</InputLabel>
+                <Select
+                  value={selectedPairId || ''}
+                  label="Select pair"
+                  onChange={(e) => setSelectedPairId(e.target.value)}
+                  sx={{ fontSize: '11px' }}
+                >
+                  {multiPairResults.pairs_results.map((pair: PairResult) => (
+                    <MenuItem key={pair.pair_id} value={pair.pair_id} sx={{ fontSize: '11px' }}>
+                      {pair.pair_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
+          {(multiPairResults || results) && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+              onClick={handleExportCSV}
+              disabled={loading || exporting}
+              sx={{ fontSize: '11px', height: 28 }}
+            >
+              {exporting ? 'Exporting...' : 'Export CSV'}
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+        {renderContent()}
+      </Box>
+    </Box>
   );
 };
 

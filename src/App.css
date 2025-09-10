@@ -1,101 +1,446 @@
+/* Global styles for Ant Design integration */
 .App {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
   height: 100vh;
+  overflow: hidden;
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
 }
 
-.app-header {
-  background-color: #282c34;
-  padding: 20px;
-  color: white;
-  display: flex;
-  justify-content: center;
+/* CSS Custom Properties for theme-aware colors */
+:root {
+  /* Light theme sidebar colors */
+  --sidebar-bg-color: #fafafa;
+  --sidebar-border-color: #d9d9d9;
+  --sidebar-border-hover-color: #1890ff;
+  --main-bg-color: #ffffff;
 }
 
-.app-main {
-  display: flex;
-  flex: 1;
+/* Dark theme sidebar colors */
+[data-theme='dark'] .App,
+.ant-app[data-theme='dark'] .App {
+  --sidebar-bg-color: #262626;
+  --sidebar-border-color: #434343;
+  --sidebar-border-hover-color: #177ddc;
+  --main-bg-color: #1f1f1f;
+}
+
+/* Remove any default margins/padding from body/html */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   overflow: hidden;
 }
 
-.app-sidebar {
-  width: 300px;
-  background-color: #f5f5f5;
-  padding: 20px;
-  overflow-y: auto;
-  border-right: 1px solid #ddd;
+/* Ant Design overrides for better integration */
+.ant-layout-sider-collapsed {
+  width: 0 !important;
 }
 
-.app-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
+/* Compact Ant Design components */
+.ant-card-body {
+  padding: 8px !important;
 }
 
+.ant-card-head {
+  padding: 0 8px !important;
+  min-height: 32px !important;
+}
+
+.ant-card-head-title {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.ant-btn {
+  font-size: 11px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+}
+
+.ant-input-number {
+  font-size: 11px !important;
+}
+
+.ant-input-number-input {
+  font-size: 11px !important;
+  padding: 0 8px !important;
+}
+
+.ant-tag {
+  font-size: 10px !important;
+  padding: 0 4px !important;
+  margin: 2px !important;
+}
+
+.ant-tabs-tab {
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+}
+
+.ant-tabs-content {
+  font-size: 12px !important;
+}
+
+.ant-space-item {
+  font-size: 12px !important;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 992px) {
+  .ant-layout-sider {
+    position: absolute !important;
+    z-index: 1000;
+    height: 100vh !important;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .ant-layout-sider .ant-layout-sider-children {
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+
+/* Custom scrollbar for better UX */
+.ant-layout-sider::-webkit-scrollbar,
+.ant-layout-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ant-layout-sider::-webkit-scrollbar-track,
+.ant-layout-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb,
+.ant-layout-content::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border);
+  border-radius: 2px;
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb:hover,
+.ant-layout-content::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-border-secondary);
+}
+
+/* Ensure sidebar content is scrollable */
+.ant-layout-sider .ant-layout-sider-children {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Fix for sidebar scrolling on smaller screens */
+@media (max-width: 992px) {
+  .ant-layout-sider {
+    position: absolute !important;
+    z-index: 1000;
+    height: 100vh !important;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .ant-layout-sider .ant-layout-sider-children {
+    height: 100%;
+    overflow-y: auto;
+  }
+}
+
+/* Loading and error states */
+.loading-content {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+}
+
+/* Statistics summary styling */
+.stats-summary {
+  margin-top: 12px;
+  padding: 8px;
+  background-color: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.stats-summary h4 {
+  margin-bottom: 6px;
+  color: var(--ant-color-text);
+  font-size: 14px;
+}
+
+/* Chart containers */
+.pvalue-chart,
+.ci-chart {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.histogram-container,
+.ci-plot-container {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Legend styling */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+/* S-value analysis styling */
+.svalue-analysis {
+  padding: 12px;
+  font-size: 12px;
+}
+
+.svalue-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.svalue-interpretation {
+  margin-top: 12px;
+  padding: 8px;
+  background-color: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Form styling improvements */
 .parameter-group {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: #e9e9e9;
-  border-radius: 5px;
+  margin-bottom: 8px;
 }
 
-.input-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  align-items: center;
+.parameter-group h3 {
+  margin-bottom: 6px;
+  color: var(--ant-color-text);
+  font-size: 14px;
 }
 
-.input-row label {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.input-row input {
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  width: 100px;
-}
-
-.run-button {
-  background-color: #4caf50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.run-button:hover {
-  background-color: #45a049;
-}
-
-.tabs {
-  display: flex;
-  margin-bottom: 20px;
-}
-
-.tab-button {
-  background-color: #f1f1f1;
-  border: 1px solid #ccc;
-  padding: 10px 20px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.tab-button.active {
-  background-color: #ddd;
-  font-weight: bold;
-}
-
+/* Tab content styling */
 .tab-content {
-  min-height: 300px;
-  border: 1px solid #ddd;
-  padding: 20px;
-  border-radius: 5px;
+  min-height: 200px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 12px;
+}
+
+/* Dashboard view styling */
+.dashboard-view {
+  max-width: 100%;
+  font-size: 12px;
+}
+
+/* Responsive grid for statistics */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+/* Export button styling */
+.export-button {
+  background-color: var(--ant-color-success);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.export-button:hover {
+  background-color: var(--ant-color-success-hover);
+}
+
+.export-button:disabled {
+  background-color: var(--ant-color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Compact spacing for all components */
+.ant-space {
+  font-size: 12px !important;
+}
+
+.ant-space-item {
+  font-size: 12px !important;
+}
+
+/* Compact form items */
+.ant-form-item {
+  margin-bottom: 8px !important;
+}
+
+.ant-form-item-label {
+  padding-bottom: 2px !important;
+}
+
+.ant-form-item-label > label {
+  font-size: 11px !important;
+  height: 20px !important;
+}
+
+/* React Resizable Panels styling */
+[data-panel-resize-handle-enabled="true"] {
+  background: transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-panel-resize-handle-enabled="true"]:hover {
+  background: #D4EDDA !important; /* Light olive */
+  box-shadow: none !important;
+}
+
+[data-panel-resize-handle-enabled="true"] > div {
+  background: #D4EDDA !important; /* Light olive */
+  opacity: 0.6 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+[data-panel-resize-handle-enabled="true"]:hover > div {
+  opacity: 1 !important;
+}
+
+/* Improved sidebar scroll behavior */
+.ant-layout-sider .ant-layout-sider-children {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ant-color-border) transparent;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border);
+  border-radius: 3px;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-border-secondary);
+}
+
+/* Remove outer layout borders */
+.ant-layout {
+  border: none !important;
+}
+
+/* Sidebar styling is now handled by react-resizable-panels */
+
+.ant-layout-header {
+  border-bottom: 1px solid var(--ant-color-border-secondary) !important;
+}
+
+/* Differentiate sidebar from main content backgrounds */
+.ant-layout-sider {
+  background: var(--sidebar-bg-color) !important;
+}
+
+.ant-layout .ant-layout-content {
+  background: var(--main-bg-color) !important;
+}
+
+/* Force scrollbar visibility in sidebar */
+.ant-layout-sider {
+  overflow: visible !important;
+}
+
+.ant-layout-sider .ant-layout-sider-children {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: auto !important;
+  scrollbar-color: var(--ant-color-border) transparent !important;
+  max-height: 100vh !important;
+  height: 100% !important;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar {
+  width: 8px !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-track {
+  background: var(--sidebar-bg-color) !important;
+  border-radius: 4px !important;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border) !important;
+  border-radius: 4px !important;
+  opacity: 1 !important;
+  border: 1px solid var(--sidebar-bg-color) !important;
+}
+
+.ant-layout-sider .ant-layout-sider-children::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-border-secondary) !important;
+}
+
+/* Ensure the control panel content can scroll */
+.control-panel {
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.control-panel > div {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: auto !important;
+  scrollbar-color: var(--ant-color-border) transparent !important;
+}
+
+.control-panel > div::-webkit-scrollbar {
+  width: 8px !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+.control-panel > div::-webkit-scrollbar-track {
+  background: var(--sidebar-bg-color) !important;
+  border-radius: 4px !important;
+}
+
+.control-panel > div::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border) !important;
+  border-radius: 4px !important;
+  opacity: 1 !important;
+  border: 1px solid var(--sidebar-bg-color) !important;
+}
+
+.control-panel > div::-webkit-scrollbar-thumb:hover {
+  background: var(--ant-color-border-secondary) !important;
 }
