@@ -9,7 +9,8 @@ import {
   Paper,
   Divider,
   Button,
-  Chip
+  Chip,
+  FormControlLabel
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -177,86 +178,103 @@ export const StudyBuilderCompact: React.FC<StudyBuilderCompactProps> = ({
     );
   };
 
-  const renderPairRow = (pair: SamplePair, index: number) => (
-    <Box
+  const renderPairCard = (pair: SamplePair, index: number) => (
+    <Paper
       key={pair.id}
+      elevation={1}
       sx={{
-        display: 'flex',
-        alignItems: 'center',
-        py: 0.5,
-        px: 1,
+        p: 1.5,
         borderRadius: 1,
-        bgcolor: pair.enabled ? 'background.paper' : 'action.disabled',
         border: '1px solid',
-        borderColor: pair.enabled ? pair.color_scheme : 'divider',
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
         opacity: pair.enabled ? 1 : 0.6,
-        '&:hover': { bgcolor: 'action.hover' }
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          boxShadow: 2,
+          borderColor: 'primary.light'
+        }
       }}
     >
-      {/* Status Indicator */}
-      <Box
-        sx={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          bgcolor: pair.color_scheme,
-          mr: 1
-        }}
-      />
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <ScienceIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+          {renderEditableField(pair.id, 'name', pair.name, 'text', 100)}
+        </Box>
 
-      {/* Pair Name */}
-      <Box sx={{ minWidth: 80, mr: 1 }}>
-        {renderEditableField(pair.id, 'name', pair.name, 'text', 70)}
-      </Box>
-
-      {/* Group 1 Parameters */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 1 }}>
-        <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>G1:</Typography>
-        {renderEditableField(pair.id, 'group1_mean', pair.group1.mean, 'number', 35)}
-        <Typography variant="caption" sx={{ fontSize: '10px' }}>±</Typography>
-        {renderEditableField(pair.id, 'group1_std', pair.group1.std, 'number', 35)}
-      </Box>
-
-      {/* Group 2 Parameters */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 1 }}>
-        <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>G2:</Typography>
-        {renderEditableField(pair.id, 'group2_mean', pair.group2.mean, 'number', 35)}
-        <Typography variant="caption" sx={{ fontSize: '10px' }}>±</Typography>
-        {renderEditableField(pair.id, 'group2_std', pair.group2.std, 'number', 35)}
-      </Box>
-
-      {/* Sample Size */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mr: 1 }}>
-        <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>N:</Typography>
-        {renderEditableField(pair.id, 'sample_size', pair.sample_size_per_group, 'number', 35)}
-      </Box>
-
-      {/* Effect Size Preview */}
-      <Box sx={{ minWidth: 45, mr: 1 }}>
-        <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
-          d: {(Math.abs(pair.group1.mean - pair.group2.mean) /
-               Math.sqrt((pair.group1.std ** 2 + pair.group2.std ** 2) / 2)).toFixed(2)}
-        </Typography>
-      </Box>
-
-      {/* Actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
-        <Tooltip title={pair.enabled ? "Disable pair" : "Enable pair"}>
-          <Switch
-            size="small"
-            checked={pair.enabled}
-            onChange={() => handleTogglePair(pair.id)}
-            sx={{ transform: 'scale(0.7)' }}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={pair.enabled}
+                onChange={() => handleTogglePair(pair.id)}
+              />
+            }
+            label={<Typography variant="caption" sx={{ fontSize: '10px' }}>Active</Typography>}
+            sx={{ mx: 0 }}
           />
-        </Tooltip>
 
-        <Tooltip title="Delete pair">
-          <IconButton size="small" onClick={() => handleDeletePair(pair.id)} sx={{ p: 0.25 }}>
-            <DeleteIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-        </Tooltip>
+          <Tooltip title="Delete pair">
+            <IconButton size="small" onClick={() => handleDeletePair(pair.id)} sx={{ p: 0.25 }}>
+              <DeleteIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
-    </Box>
+
+      {/* Parameters Grid */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1.5 }}>
+        {/* Group 1 */}
+        <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: '10px', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+            Group 1 (Control)
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '9px', minWidth: 15 }}>μ:</Typography>
+            {renderEditableField(pair.id, 'group1_mean', pair.group1.mean, 'number', 45)}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '9px', minWidth: 15 }}>σ:</Typography>
+            {renderEditableField(pair.id, 'group1_std', pair.group1.std, 'number', 45)}
+          </Box>
+        </Box>
+
+        {/* Group 2 */}
+        <Box sx={{ p: 1, bgcolor: 'background.default', borderRadius: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: '10px', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+            Group 2 (Treatment)
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '9px', minWidth: 15 }}>μ:</Typography>
+            {renderEditableField(pair.id, 'group2_mean', pair.group2.mean, 'number', 45)}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '9px', minWidth: 15 }}>σ:</Typography>
+            {renderEditableField(pair.id, 'group2_std', pair.group2.std, 'number', 45)}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Sample Size & Effect Size */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>Sample Size:</Typography>
+          {renderEditableField(pair.id, 'sample_size', pair.sample_size_per_group, 'number', 50)}
+        </Box>
+
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography variant="caption" sx={{ fontSize: '9px', color: 'text.secondary' }}>
+            Effect Size (d)
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: '11px', fontWeight: 600 }}>
+            {(Math.abs(pair.group1.mean - pair.group2.mean) /
+               Math.sqrt((pair.group1.std ** 2 + pair.group2.std ** 2) / 2)).toFixed(3)}
+          </Typography>
+        </Box>
+      </Box>
+    </Paper>
   );
 
   return (
@@ -302,8 +320,13 @@ export const StudyBuilderCompact: React.FC<StudyBuilderCompactProps> = ({
             </Typography>
           </Paper>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {pairs.map((pair, index) => renderPairRow(pair, index))}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 1.5,
+            width: '100%'
+          }}>
+            {pairs.map((pair, index) => renderPairCard(pair, index))}
           </Box>
         )}
       </Box>

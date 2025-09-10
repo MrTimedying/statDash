@@ -293,7 +293,10 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
       {currentStudy && (
         <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
           <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
-            Last updated: {currentStudy.updated_at.toLocaleDateString()}
+            Last updated: {new Date(currentStudy.updated_at).toLocaleDateString()}
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
+            Created: {new Date(currentStudy.created_at).toLocaleDateString()}
           </Typography>
         </Box>
       )}

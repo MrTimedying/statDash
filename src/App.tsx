@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Container, Paper, Typography } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import ControlPanel, { AppProvider } from './ControlPanel';
 import DashboardView from './DashboardView';
 import { MaterialThemeProvider } from './components/MaterialThemeProvider';
 import { AppHeader } from './components/Header';
@@ -10,12 +9,13 @@ import { ParameterTuner } from './components/ParameterTuner';
 import './App.css';
 
 // Import new types and stores
-import { SimulationStudy, SamplePair } from './types/simulation.types';
+import { SimulationStudy, SamplePair, SimulationSession } from './types/simulation.types';
 import { useSimulationStore } from './stores/simulation.store';
 import { useUIStore } from './stores/ui.store';
 import { useChartStore } from './stores/chart.store';
 import { databaseService } from './services/database.service';
 import { workerService } from './services/worker.service';
+import { TanStackResultsTable } from './components/TanStackResultsTable';
 
 // Phase 1.5: Provider component for new architecture
 const Phase15Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -78,50 +78,75 @@ const Phase15Provider: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
-// Study Management Component
+// Study Management Component - Updated to use Zustand stores
 const StudyManager: React.FC = () => {
-  const [studies, setStudies] = useState<SimulationStudy[]>([]);
-  const [currentStudy, setCurrentStudy] = useState<SimulationStudy | null>(null);
+  const simulationStore = useSimulationStore();
+  const uiStore = useUIStore();
 
-  // Study management handlers
+  // Get data from stores
+  const currentSession = simulationStore.currentSession;
+  const simulationHistory = simulationStore.simulationHistory;
+
+  // Study management handlers - now using simulation store
   const handleStudyCreate = (studyData: Omit<SimulationStudy, 'id' | 'created_at' | 'updated_at'>) => {
-    const newStudy: SimulationStudy = {
-      ...studyData,
-      id: crypto.randomUUID(),
-      created_at: new Date(),
-      updated_at: new Date()
+    // Convert study to session format
+    const sessionParams = {
+      pairs: studyData.pairs || [],
+      global_settings: studyData.parameters?.global_settings || {
+        num_simulations: 1000,
+        significance_levels: [0.01, 0.05, 0.10],
+        confidence_level: 0.95,
+        test_type: 'welch' as const
+      },
+      ui_preferences: studyData.parameters?.ui_preferences || {
+        theme: 'light' as const,
+        decimal_places: 3,
+        chart_animations: true,
+        color_blind_safe: false
+      }
     };
-    setStudies(prev => [...prev, newStudy]);
-    setCurrentStudy(newStudy);
+
+    simulationStore.createSession(sessionParams);
   };
 
   const handleStudyUpdate = (studyId: string, updates: Partial<SimulationStudy>) => {
-    setStudies(prev => prev.map(study =>
-      study.id === studyId
-        ? { ...study, ...updates, updated_at: new Date() }
-        : study
-    ));
-
-    if (currentStudy?.id === studyId) {
-      setCurrentStudy(prev => prev ? { ...prev, ...updates, updated_at: new Date() } : null);
+    if (updates.parameters) {
+      // Convert StudyParameters to MultiPairSimulationParams
+      const sessionUpdates: Partial<SimulationSession> = {
+        name: updates.name,
+        description: updates.description,
+        parameters: {
+          pairs: updates.pairs || [],
+          global_settings: updates.parameters.global_settings,
+          ui_preferences: updates.parameters.ui_preferences
+        }
+      };
+      simulationStore.updateSession(sessionUpdates);
+    } else if (updates.pairs) {
+      // Handle pairs update
+      simulationStore.updatePairs(updates.pairs);
+    } else {
+      // Handle other updates
+      simulationStore.updateSession({
+        name: updates.name,
+        description: updates.description
+      });
     }
   };
 
   const handleStudyDelete = (studyId: string) => {
-    setStudies(prev => prev.filter(study => study.id !== studyId));
-    if (currentStudy?.id === studyId) {
-      setCurrentStudy(null);
-    }
+    simulationStore.deleteSession(studyId);
   };
 
   const handleRunStudy = (studyId: string) => {
-    // TODO: Implement study execution
-    console.log('Running study:', studyId);
+    // Load the study/session and run simulation
+    simulationStore.loadSession(studyId).then(() => {
+      simulationStore.runSimulation();
+    });
   };
 
   const handleSaveStudy = (studyId: string) => {
-    // TODO: Implement study persistence
-    console.log('Saving study:', studyId);
+    simulationStore.saveSession();
   };
 
   // Default study parameters for when no study is selected
@@ -176,9 +201,147 @@ const StudyManager: React.FC = () => {
         {/* Left Panel: Study Orchestrator */}
         <Panel defaultSize={25} minSize={20} maxSize={40} style={{ height: '100%' }}>
           <StudyOrchestrator
-            currentStudy={currentStudy}
-            studies={studies}
-            onStudyChange={setCurrentStudy}
+            currentStudy={currentSession ? {
+              id: currentSession.id,
+              name: currentSession.name,
+              description: currentSession.description,
+              pairs: currentSession.parameters.pairs,
+              parameters: {
+                global_settings: currentSession.parameters.global_settings,
+                ui_preferences: currentSession.parameters.ui_preferences,
+                analysis_settings: {
+                  effect_size_thresholds: {
+                    negligible: 0.2,
+                    small: 0.5,
+                    medium: 0.8,
+                    large: 1.2
+                  },
+                  power_analysis_settings: {
+                    target_power: 0.8,
+                    alpha_levels: [0.05],
+                    alternative: 'two-sided' as const
+                  },
+                  reporting_preferences: {
+                    decimal_places: 3,
+                    include_confidence_intervals: true,
+                    include_effect_sizes: true,
+                    export_formats: ['json', 'csv']
+                  }
+                }
+              },
+              results: currentSession.results ? {
+                execution_id: crypto.randomUUID(),
+                multi_pair_results: currentSession.results,
+                study_insights: {
+                  key_findings: [],
+                  recommendations: [],
+                  statistical_summary: {
+                    total_pairs_analyzed: currentSession.results.pairs_results.length,
+                    overall_power: 0.8,
+                    effect_size_distribution: {
+                      mean: 0,
+                      median: 0,
+                      range: [0, 0],
+                      categories: { negligible: 0, small: 0, medium: 0, large: 0 }
+                    },
+                    significance_patterns: {
+                      consistent_threshold: 0.05,
+                      variability_across_pairs: 0,
+                      power_curve: []
+                    }
+                  },
+                  data_quality_metrics: {
+                    normality_tests: {},
+                    variance_homogeneity: true,
+                    sample_size_adequacy: true,
+                    effect_size_reliability: 0.9
+                  }
+                },
+                parameter_history: [],
+                execution_timestamp: new Date()
+              } : undefined,
+              metadata: {
+                version: '1.0.0',
+                tags: [],
+                notes: []
+              },
+              status: 'draft' as const,
+              created_at: currentSession.created_at,
+              updated_at: currentSession.updated_at
+            } : null}
+            studies={simulationHistory.map(session => ({
+              id: session.id,
+              name: session.name,
+              description: session.description,
+              pairs: session.parameters.pairs,
+              parameters: {
+                global_settings: session.parameters.global_settings,
+                ui_preferences: session.parameters.ui_preferences,
+                analysis_settings: {
+                  effect_size_thresholds: {
+                    negligible: 0.2,
+                    small: 0.5,
+                    medium: 0.8,
+                    large: 1.2
+                  },
+                  power_analysis_settings: {
+                    target_power: 0.8,
+                    alpha_levels: [0.05],
+                    alternative: 'two-sided' as const
+                  },
+                  reporting_preferences: {
+                    decimal_places: 3,
+                    include_confidence_intervals: true,
+                    include_effect_sizes: true,
+                    export_formats: ['json', 'csv']
+                  }
+                }
+              },
+              results: session.results ? {
+                execution_id: crypto.randomUUID(),
+                multi_pair_results: session.results,
+                study_insights: {
+                  key_findings: [],
+                  recommendations: [],
+                  statistical_summary: {
+                    total_pairs_analyzed: session.results.pairs_results.length,
+                    overall_power: 0.8,
+                    effect_size_distribution: {
+                      mean: 0,
+                      median: 0,
+                      range: [0, 0],
+                      categories: { negligible: 0, small: 0, medium: 0, large: 0 }
+                    },
+                    significance_patterns: {
+                      consistent_threshold: 0.05,
+                      variability_across_pairs: 0,
+                      power_curve: []
+                    }
+                  },
+                  data_quality_metrics: {
+                    normality_tests: {},
+                    variance_homogeneity: true,
+                    sample_size_adequacy: true,
+                    effect_size_reliability: 0.9
+                  }
+                },
+                parameter_history: [],
+                execution_timestamp: new Date()
+              } : undefined,
+              metadata: {
+                version: '1.0.0',
+                tags: [],
+                notes: []
+              },
+              status: 'draft' as const,
+              created_at: session.created_at,
+              updated_at: session.updated_at
+            }))}
+            onStudyChange={(study) => {
+              if (study) {
+                simulationStore.loadSession(study.id);
+              }
+            }}
             onStudyCreate={handleStudyCreate}
             onStudyUpdate={handleStudyUpdate}
             onStudyDelete={handleStudyDelete}
@@ -242,21 +405,25 @@ const StudyManager: React.FC = () => {
                 p: 1,
                 bgcolor: 'background.default',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                overflow: 'auto'
               }}>
-                {/* TODO: Add data table component */}
-                <Box sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Data table will be implemented here
-                  </Typography>
-                </Box>
+                {currentSession?.results ? (
+                  <TanStackResultsTable results={currentSession.results} />
+                ) : (
+                  <Box sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Run a simulation to view tabular results
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Panel>
           </PanelGroup>
@@ -280,29 +447,24 @@ const StudyManager: React.FC = () => {
         {/* Right Panel: Parameter Tuner - Always visible */}
         <Panel defaultSize={20} minSize={15} maxSize={35} style={{ height: '100%' }}>
           <ParameterTuner
-            globalSettings={currentStudy?.parameters.global_settings || defaultParameters.global_settings}
-            uiPreferences={currentStudy?.parameters.ui_preferences || defaultParameters.ui_preferences}
-            analysisSettings={currentStudy?.parameters.analysis_settings || defaultParameters.analysis_settings}
+            globalSettings={currentSession?.parameters.global_settings || defaultParameters.global_settings}
+            uiPreferences={currentSession?.parameters.ui_preferences || defaultParameters.ui_preferences}
+            analysisSettings={defaultParameters.analysis_settings}
             onGlobalSettingsChange={(settings) => {
-              if (currentStudy) {
-                handleStudyUpdate(currentStudy.id, {
-                  parameters: { ...currentStudy.parameters, global_settings: { ...currentStudy.parameters.global_settings, ...settings } }
-                });
+              if (currentSession) {
+                simulationStore.updateGlobalSettings(settings);
               }
             }}
             onUIPreferencesChange={(preferences) => {
-              if (currentStudy) {
-                handleStudyUpdate(currentStudy.id, {
-                  parameters: { ...currentStudy.parameters, ui_preferences: { ...currentStudy.parameters.ui_preferences, ...preferences } }
-                });
-              }
+              uiStore.updatePreferences({
+                decimalPlaces: preferences.decimal_places,
+                chartAnimations: preferences.chart_animations,
+                colorBlindSafe: preferences.color_blind_safe,
+              });
             }}
             onAnalysisSettingsChange={(settings) => {
-              if (currentStudy) {
-                handleStudyUpdate(currentStudy.id, {
-                  parameters: { ...currentStudy.parameters, analysis_settings: { ...currentStudy.parameters.analysis_settings, ...settings } }
-                });
-              }
+              // Analysis settings would be handled by simulation store if needed
+              console.log('Analysis settings changed:', settings);
             }}
           />
         </Panel>
@@ -315,15 +477,13 @@ function App() {
   return (
     <MaterialThemeProvider>
       <Phase15Provider>
-        <AppProvider>
-          <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <AppHeader />
+        <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          <AppHeader />
 
-            <Box sx={{ flex: 1, height: 'calc(100vh - 64px)' }}>
-              <StudyManager />
-            </Box>
+          <Box sx={{ flex: 1, height: 'calc(100vh - 64px)' }}>
+            <StudyManager />
           </Box>
-        </AppProvider>
+        </Box>
       </Phase15Provider>
     </MaterialThemeProvider>
   );

@@ -8,6 +8,7 @@ import {
   SimulationSession
 } from '../types/simulation.types';
 import { databaseService } from '../services/database.service';
+import { multiPairSimulationEngine } from '../services/multi-pair-simulation';
 
 interface SimulationState {
   // Current session state
@@ -23,6 +24,7 @@ interface SimulationState {
   // Computed properties
   activePairs: SamplePair[];
   hasUnsavedChanges: boolean;
+  resultsStale: boolean; // Indicates if current results are out of date due to parameter changes
 }
 
 interface SimulationActions {
@@ -60,6 +62,19 @@ const initialState: SimulationState = {
   error: null,
   activePairs: [],
   hasUnsavedChanges: false,
+  resultsStale: false,
+};
+
+const deserializeDates = (session: SimulationSession): SimulationSession => {
+  return {
+    ...session,
+    created_at: new Date(session.created_at),
+    updated_at: new Date(session.updated_at),
+  };
+};
+
+const deserializeSessionHistory = (history: SimulationSession[]): SimulationSession[] => {
+  return history.map(deserializeDates);
 };
 
 export const useSimulationStore = create<SimulationStore>()(
@@ -136,8 +151,10 @@ export const useSimulationStore = create<SimulationStore>()(
             const session = await databaseService.loadSession(sessionId);
 
             if (session) {
+              // Ensure dates are Date objects (database service should handle this, but double-check)
+              const normalizedSession = deserializeDates(session);
               set({
-                currentSession: session,
+                currentSession: normalizedSession,
                 hasUnsavedChanges: false,
               });
               console.log('Session loaded successfully:', sessionId);
@@ -179,7 +196,10 @@ export const useSimulationStore = create<SimulationStore>()(
             // Load session history from database
             const history = await databaseService.getSessionHistory(20);
 
-            set({ simulationHistory: history });
+            // Ensure dates are Date objects
+            const normalizedHistory = deserializeSessionHistory(history);
+
+            set({ simulationHistory: normalizedHistory });
             console.log('Session history loaded:', history.length, 'sessions');
           } catch (error) {
             console.error('Failed to load session history:', error);
@@ -197,18 +217,41 @@ export const useSimulationStore = create<SimulationStore>()(
               throw new Error('No active session');
             }
 
-            // TODO: Implement actual simulation logic
-            console.log('Running simulation for session:', currentSession.id);
+            console.log('Running multi-pair simulation for session:', currentSession.id);
 
-            // Simulate async operation
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Run the actual multi-pair simulation
+            const results: MultiPairResults = await multiPairSimulationEngine.runMultiPairSimulation(
+              currentSession.parameters,
+              (progress) => {
+                console.log('Simulation progress:', progress);
+              }
+            );
 
-            // TODO: Update session with results
-            set({ isLoading: false });
+            console.log('Multi-pair simulation completed successfully');
+
+            // Update session with results
+            const updatedSession = {
+              ...currentSession,
+              results,
+              updated_at: new Date(),
+            };
+
+            set((state) => ({
+              currentSession: updatedSession,
+              simulationHistory: state.simulationHistory.map(session =>
+                session.id === currentSession.id ? updatedSession : session
+              ),
+              hasUnsavedChanges: true,
+              isLoading: false,
+              resultsStale: false, // Clear stale flag when new results are generated
+            }));
+
+            console.log('Session updated with simulation results');
           } catch (error) {
+            console.error('Simulation failed:', error);
             set({
               isLoading: false,
-              error: error instanceof Error ? error.message : 'Unknown error occurred'
+              error: error instanceof Error ? error.message : 'Simulation failed'
             });
           }
         },
@@ -238,6 +281,7 @@ export const useSimulationStore = create<SimulationStore>()(
                 updated_at: new Date(),
               },
               hasUnsavedChanges: true,
+              resultsStale: true, // Mark results as stale when pairs change
             };
           });
         },
@@ -259,6 +303,7 @@ export const useSimulationStore = create<SimulationStore>()(
                 updated_at: new Date(),
               },
               hasUnsavedChanges: true,
+              resultsStale: true, // Mark results as stale when global settings change
             };
           });
         },
@@ -270,6 +315,18 @@ export const useSimulationStore = create<SimulationStore>()(
           simulationHistory: state.simulationHistory.slice(0, 10), // Keep only last 10 sessions
           activeTab: state.activeTab,
         }),
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            // Deserialize dates in currentSession
+            if (state.currentSession) {
+              state.currentSession = deserializeDates(state.currentSession);
+            }
+            // Deserialize dates in simulationHistory
+            if (state.simulationHistory) {
+              state.simulationHistory = deserializeSessionHistory(state.simulationHistory);
+            }
+          }
+        },
       }
     ),
     {
@@ -299,4 +356,8 @@ export const useIsLoading = () => {
 
 export const useError = () => {
   return useSimulationStore((state) => state.error);
+};
+
+export const useResultsStale = () => {
+  return useSimulationStore((state) => state.resultsStale);
 };
