@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Container, Paper, Typography } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import DashboardView from './DashboardView';
@@ -83,6 +83,10 @@ const StudyManager: React.FC = () => {
   const simulationStore = useSimulationStore();
   const uiStore = useUIStore();
 
+  // Sidebar state (no longer collapsible)
+  const leftPanelRef = useRef<any>(null);
+  const rightPanelRef = useRef<any>(null);
+
   // Get data from stores
   const currentSession = simulationStore.currentSession;
   const simulationHistory = simulationStore.simulationHistory;
@@ -145,9 +149,6 @@ const StudyManager: React.FC = () => {
     });
   };
 
-  const handleSaveStudy = (studyId: string) => {
-    simulationStore.saveSession();
-  };
 
   // Default study parameters for when no study is selected
   const defaultParameters = {
@@ -199,7 +200,7 @@ const StudyManager: React.FC = () => {
         flex: 1
       }}>
         {/* Left Panel: Study Orchestrator */}
-        <Panel defaultSize={25} minSize={20} maxSize={40} style={{ height: '100%' }}>
+        <Panel ref={leftPanelRef} defaultSize={25} minSize={15} maxSize={40} style={{ height: '100%' }}>
           <StudyOrchestrator
             currentStudy={currentSession ? {
               id: currentSession.id,
@@ -346,7 +347,6 @@ const StudyManager: React.FC = () => {
             onStudyUpdate={handleStudyUpdate}
             onStudyDelete={handleStudyDelete}
             onRunStudy={handleRunStudy}
-            onSaveStudy={handleSaveStudy}
           />
         </Panel>
 
@@ -445,7 +445,7 @@ const StudyManager: React.FC = () => {
         </PanelResizeHandle>
 
         {/* Right Panel: Parameter Tuner - Always visible */}
-        <Panel defaultSize={20} minSize={15} maxSize={35} style={{ height: '100%' }}>
+        <Panel ref={rightPanelRef} defaultSize={20} minSize={15} maxSize={35} style={{ height: '100%' }}>
           <ParameterTuner
             globalSettings={currentSession?.parameters.global_settings || defaultParameters.global_settings}
             uiPreferences={currentSession?.parameters.ui_preferences || defaultParameters.ui_preferences}

@@ -76,8 +76,8 @@ export const ParameterTuner: React.FC<ParameterTunerProps> = ({
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
       {/* Header */}
-      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
           <TuneIcon sx={{ fontSize: 16 }} />
           <Typography variant="subtitle2" sx={{ fontSize: '12px', fontWeight: 600 }}>
             Parameters
@@ -86,7 +86,7 @@ export const ParameterTuner: React.FC<ParameterTunerProps> = ({
       </Box>
 
       {/* Parameter Sections */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
         {/* Simulation Settings */}
         <Accordion
           expanded={expanded === 'simulation'}

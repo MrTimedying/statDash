@@ -12,6 +12,7 @@ import { useChartStore } from '../../stores/chart.store';
 import { ChartModal } from './ChartModal';
 import { ChartCard } from './ChartCard';
 import { MultiPairResults } from '../../types/simulation.types';
+import { generateDynamicCharts, DynamicChartInfo } from './chartFactory';
 
 interface ChartGridProps {
   multiPairResults: MultiPairResults | null;
@@ -38,57 +39,13 @@ export const ChartGrid: React.FC<ChartGridProps> = ({
   // Get significance thresholds from simulation store
   const significanceLevels = simulationStore.currentSession?.parameters.global_settings.significance_levels || [0.01, 0.05, 0.10];
 
-  // Define available charts
-  const availableCharts = useMemo(() => [
-    {
-      id: 'distribution-curves',
-      title: 'Sample Distribution Curves',
-      type: 'line' as const,
-      description: 'Distribution curves for g1 and g2 sample values'
-    },
-    {
-      id: 'pvalue-barchart',
-      title: 'P-Value Distribution',
-      type: 'bar' as const,
-      description: 'P-value distribution with significance thresholds'
-    },
-    {
-      id: 'confidence-intervals',
-      title: 'Confidence Intervals',
-      type: 'bar' as const,
-      description: 'Confidence interval visualization for each pair'
-    },
-    {
-      id: 'overlayed-analysis',
-      title: 'Overlayed Analysis',
-      type: 'combined' as const,
-      description: 'Confidence intervals with distribution overlays'
-    },
-    {
-      id: 'effect-size-histogram',
-      title: 'Effect Size Distribution',
-      type: 'histogram' as const,
-      description: 'Histogram of effect sizes across all pairs'
-    },
-    {
-      id: 'qq-plot',
-      title: 'QQ Plot',
-      type: 'scatter' as const,
-      description: 'Quantile-quantile plot for normality assessment'
-    },
-    {
-      id: 'pvalue-effect-scatter',
-      title: 'P-Value vs Effect Size',
-      type: 'scatter' as const,
-      description: 'Scatter plot of p-values vs effect sizes'
-    },
-    {
-      id: 'box-plot',
-      title: 'Sample Distributions',
-      type: 'boxplot' as const,
-      description: 'Box plot comparison of sample distributions'
-    }
-  ], []);
+  // Generate dynamic charts based on available pairs
+  const availableCharts = useMemo(() => {
+    if (!multiPairResults) return [];
+
+    const pairs = simulationStore.currentSession?.parameters.pairs || [];
+    return generateDynamicCharts(pairs, multiPairResults, significanceLevels);
+  }, [multiPairResults, simulationStore.currentSession?.parameters.pairs, significanceLevels]);
 
   // Handle chart selection
   const handleChartSelect = (chartId: string, checked: boolean) => {
@@ -209,6 +166,7 @@ export const ChartGrid: React.FC<ChartGridProps> = ({
               sm: 'repeat(2, 1fr)',
               md: 'repeat(3, 1fr)'
             },
+            gridAutoRows: '1fr',
             gap: 2,
             p: 1
           }}

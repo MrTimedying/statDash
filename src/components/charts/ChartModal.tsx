@@ -19,18 +19,13 @@ import {
 import { MultiPairResults } from '../../types/simulation.types';
 import { DistributionCurveChart } from './DistributionCurveChart';
 import { PValueBarChart } from './PValueBarChart';
-
-interface ChartInfo {
-  id: string;
-  title: string;
-  type: 'line' | 'bar' | 'histogram' | 'scatter' | 'boxplot' | 'combined';
-  description: string;
-}
+import { PairDistributionChart } from './PairDistributionChart';
+import { DynamicChartInfo } from './chartFactory';
 
 interface ChartModalProps {
   open: boolean;
   onClose: () => void;
-  charts: ChartInfo[];
+  charts: DynamicChartInfo[];
   currentIndex: number;
   onNavigate: (direction: 'prev' | 'next') => void;
   multiPairResults: MultiPairResults;
@@ -80,51 +75,61 @@ export const ChartModal: React.FC<ChartModalProps> = ({
     const chartProps = {
       multiPairResults,
       width: isMobile ? 300 : 800,
-      height: isMobile ? 250 : 500
+      height: isMobile ? 250 : 500,
+      ...currentChart.props // Include any additional props from the chart factory
     };
 
-    switch (currentChart.id) {
-      case 'distribution-curves':
-        return <DistributionCurveChart {...chartProps} />;
-
-      case 'pvalue-barchart':
-        return (
-          <PValueBarChart
-            {...chartProps}
-            significanceLevels={significanceLevels}
-          />
-        );
-
-      default:
-        // Placeholder for unimplemented charts
-        return (
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              minHeight: isMobile ? 300 : 500,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: theme.palette.background.default,
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 1
-            }}
-          >
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                {currentChart.title}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Chart implementation in progress
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Type: {currentChart.type}
-              </Typography>
-            </Box>
-          </Box>
-        );
+    // Use the component from the chart factory if available
+    if (currentChart.component) {
+      const ChartComponent = currentChart.component;
+      return <ChartComponent {...chartProps} />;
     }
+
+    // Resolve component based on chart type if not provided
+    let ChartComponent = null;
+    switch (currentChart.type) {
+      case 'distribution':
+        ChartComponent = PairDistributionChart;
+        break;
+      case 'bar':
+        ChartComponent = PValueBarChart;
+        break;
+      default:
+        ChartComponent = null;
+    }
+
+    if (ChartComponent) {
+      return <ChartComponent {...chartProps} />;
+    }
+
+    // Fallback for charts without components
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          minHeight: isMobile ? 300 : 500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: theme.palette.background.default,
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: 1
+        }}
+      >
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            {currentChart.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Chart implementation in progress
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Type: {currentChart.type}
+          </Typography>
+        </Box>
+      </Box>
+    );
   };
 
   return (
@@ -210,9 +215,7 @@ export const ChartModal: React.FC<ChartModalProps> = ({
         )}
 
         {/* Chart Content */}
-        <Box sx={{ p: 3, height: '100%' }}>
-          {renderChartContent()}
-        </Box>
+        {renderChartContent()}
       </DialogContent>
 
       {/* Footer */}

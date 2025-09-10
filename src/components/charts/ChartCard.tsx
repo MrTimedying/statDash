@@ -17,16 +17,13 @@ import {
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { MultiPairResults } from '../../types/simulation.types';
-
-interface ChartInfo {
-  id: string;
-  title: string;
-  type: 'line' | 'bar' | 'histogram' | 'scatter' | 'boxplot' | 'combined';
-  description: string;
-}
+import { DistributionCurveChart } from './DistributionCurveChart';
+import { PValueBarChart } from './PValueBarChart';
+import { PairDistributionChart } from './PairDistributionChart';
+import { DynamicChartInfo } from './chartFactory';
 
 interface ChartCardProps {
-  chart: ChartInfo;
+  chart: DynamicChartInfo;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onExpand: () => void;
@@ -66,6 +63,126 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     }
   };
 
+  const renderMiniChart = () => {
+    if (!multiPairResults.pairs_results.length) {
+      return (
+        <Typography variant="caption" color="text.secondary">
+          No data available
+        </Typography>
+      );
+    }
+
+    // If we have a component, render it at mini size
+    if (chart.component) {
+      const MiniChartComponent = chart.component;
+      return (
+        <MiniChartComponent {...chart.props} width={400} height={300} showLegend={false} mini={true} />
+      );
+    }
+
+    // Resolve component based on chart type if not provided
+    let ResolvedComponent = null;
+    switch (chart.type) {
+      case 'distribution':
+        ResolvedComponent = PairDistributionChart;
+        break;
+      case 'bar':
+        ResolvedComponent = PValueBarChart;
+        break;
+      default:
+        ResolvedComponent = null;
+    }
+
+    if (ResolvedComponent) {
+      return (
+        <ResolvedComponent {...chart.props} width={400} height={300} showLegend={false} mini={true} />
+      );
+    }
+
+    // Fallback to SVG representations based on chart type
+    switch (chart.type) {
+      case 'distribution':
+        // Show mini bell curve representation for pair-specific distribution
+        return (
+          <Box sx={{ width: '100%', height: '100%', p: 1, position: 'relative' }}>
+            <svg width="100%" height="100%" viewBox="0 0 120 80">
+              <defs>
+                <linearGradient id={`gradient1-${chart.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor={getChartColor('line')} stopOpacity="0.8" />
+                  <stop offset="100%" stopColor={getChartColor('line')} stopOpacity="0.2" />
+                </linearGradient>
+                <linearGradient id={`gradient2-${chart.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor={getChartColor('bar')} stopOpacity="0.8" />
+                  <stop offset="100%" stopColor={getChartColor('bar')} stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M10,70 Q30,10 60,10 Q90,10 110,70 L110,80 L10,80 Z"
+                fill={`url(#gradient1-${chart.id})`}
+                stroke={getChartColor('line')}
+                strokeWidth="2"
+              />
+              <path
+                d="M15,65 Q35,20 60,20 Q85,20 105,65 L105,80 L15,80 Z"
+                fill={`url(#gradient2-${chart.id})`}
+                stroke={getChartColor('bar')}
+                strokeWidth="2"
+                opacity="0.7"
+              />
+            </svg>
+            <Typography variant="caption" sx={{ position: 'absolute', bottom: 2, left: 2, fontSize: '8px' }}>
+              {chart.pairId ? 'Pair Distribution' : 'Distributions'}
+            </Typography>
+          </Box>
+        );
+
+      case 'bar':
+        // Show mini bar chart representation
+        return (
+          <Box sx={{ width: '100%', height: '100%', p: 1, position: 'relative' }}>
+            <svg width="100%" height="100%" viewBox="0 0 120 80">
+              <rect x="10" y="50" width="15" height="25" fill={getChartColor('bar')} />
+              <rect x="30" y="30" width="15" height="45" fill={getChartColor('bar')} />
+              <rect x="50" y="40" width="15" height="35" fill={getChartColor('bar')} />
+              <rect x="70" y="20" width="15" height="55" fill={getChartColor('bar')} />
+              <rect x="90" y="35" width="15" height="40" fill={getChartColor('bar')} />
+              <line x1="0" y1="25" x2="120" y2="25" stroke="#ff4d4f" strokeWidth="1" strokeDasharray="2,2" />
+            </svg>
+            <Typography variant="caption" sx={{ position: 'absolute', bottom: 2, left: 2, fontSize: '8px' }}>
+              P-values
+            </Typography>
+          </Box>
+        );
+
+      case 'comparison':
+        // Show mini comparison chart representation
+        return (
+          <Box sx={{ width: '100%', height: '100%', p: 1, position: 'relative' }}>
+            <svg width="100%" height="100%" viewBox="0 0 120 80">
+              <circle cx="30" cy="30" r="8" fill={getChartColor('line')} />
+              <circle cx="60" cy="40" r="8" fill={getChartColor('bar')} />
+              <circle cx="90" cy="35" r="8" fill={getChartColor('scatter')} />
+              <line x1="30" y1="30" x2="60" y2="40" stroke="#666" strokeWidth="2" />
+              <line x1="60" y1="40" x2="90" y2="35" stroke="#666" strokeWidth="2" />
+            </svg>
+            <Typography variant="caption" sx={{ position: 'absolute', bottom: 2, left: 2, fontSize: '8px' }}>
+              Comparison
+            </Typography>
+          </Box>
+        );
+
+      default:
+        // Fallback placeholder
+        return (
+          <Box sx={{ width: '100%', height: '100%', p: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '8px' }}>
+              {chart.type}
+            </Typography>
+          </Box>
+        );
+    }
+  };
+
   return (
     <Card
       sx={{
@@ -81,135 +198,47 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         }
       }}
     >
-      <CardContent sx={{ flex: 1, pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+      <CardContent sx={{ flex: 1, p: 0.5, pb: 0.5, '&:last-child': { pb: 0.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0 }}>
           <Checkbox
             checked={selected}
             onChange={(e) => onSelect(e.target.checked)}
             size="small"
-            sx={{ mr: 1 }}
+            sx={{ mr: 0.5 }}
           />
           <Box
             sx={{
               color: getChartColor(chart.type),
-              mr: 1,
+              mr: 0.5,
               display: 'flex',
               alignItems: 'center'
             }}
           >
             {getChartIcon(chart.type)}
           </Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.875rem' }}>
             {chart.title}
           </Typography>
         </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {chart.description}
-        </Typography>
-
         {/* Mini chart preview */}
         <Box
           sx={{
-            height: 120,
-            bgcolor: theme.palette.background.default,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 1,
+            flex: 1,
+            height: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            position: 'relative'
           }}
         >
-          {multiPairResults.pairs_results.length > 0 ? (
-            <Box sx={{ width: '100%', height: '100%', p: 1 }}>
-              {/* Simple preview based on chart type */}
-              {chart.type === 'line' && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
-                  <Box sx={{ height: '2px', bgcolor: getChartColor(chart.type), borderRadius: '1px' }} />
-                  <Box sx={{ height: '2px', bgcolor: getChartColor(chart.type), borderRadius: '1px', width: '80%' }} />
-                  <Box sx={{ height: '2px', bgcolor: getChartColor(chart.type), borderRadius: '1px', width: '60%' }} />
-                  <Box sx={{ height: '2px', bgcolor: getChartColor(chart.type), borderRadius: '1px', width: '40%' }} />
-                </Box>
-              )}
-              {chart.type === 'bar' && (
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', height: '100%', gap: 0.5, px: 1 }}>
-                  <Box sx={{ width: '20%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '40%' }} />
-                  <Box sx={{ width: '20%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '70%' }} />
-                  <Box sx={{ width: '20%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '55%' }} />
-                  <Box sx={{ width: '20%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '85%' }} />
-                </Box>
-              )}
-              {chart.type === 'scatter' && (
-                <Box sx={{ position: 'relative', height: '100%', width: '100%' }}>
-                  <Box sx={{
-                    position: 'absolute',
-                    top: '20%',
-                    left: '30%',
-                    width: '4px',
-                    height: '4px',
-                    bgcolor: getChartColor(chart.type),
-                    borderRadius: '50%'
-                  }} />
-                  <Box sx={{
-                    position: 'absolute',
-                    top: '60%',
-                    left: '70%',
-                    width: '4px',
-                    height: '4px',
-                    bgcolor: getChartColor(chart.type),
-                    borderRadius: '50%'
-                  }} />
-                  <Box sx={{
-                    position: 'absolute',
-                    top: '40%',
-                    left: '50%',
-                    width: '4px',
-                    height: '4px',
-                    bgcolor: getChartColor(chart.type),
-                    borderRadius: '50%'
-                  }} />
-                </Box>
-              )}
-              {chart.type === 'histogram' && (
-                <Box sx={{ display: 'flex', alignItems: 'flex-end', height: '100%', gap: 0.5, px: 1 }}>
-                  <Box sx={{ width: '15%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '30%' }} />
-                  <Box sx={{ width: '15%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '60%' }} />
-                  <Box sx={{ width: '15%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '45%' }} />
-                  <Box sx={{ width: '15%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '75%' }} />
-                  <Box sx={{ width: '15%', bgcolor: getChartColor(chart.type), borderRadius: '2px 2px 0 0', height: '25%' }} />
-                </Box>
-              )}
-              {chart.type === 'boxplot' && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                  <Box sx={{ width: '60%', height: '2px', bgcolor: getChartColor(chart.type) }} />
-                  <Box sx={{ width: '40%', height: '40%', border: `2px solid ${getChartColor(chart.type)}`, borderRadius: '2px' }} />
-                  <Box sx={{ width: '60%', height: '2px', bgcolor: getChartColor(chart.type) }} />
-                </Box>
-              )}
-              {chart.type === 'combined' && (
-                <Box sx={{ position: 'relative', height: '100%', width: '100%' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-end', height: '60%', gap: 0.5, px: 1 }}>
-                    <Box sx={{ width: '20%', bgcolor: getChartColor('bar'), borderRadius: '2px 2px 0 0', height: '40%' }} />
-                    <Box sx={{ width: '20%', bgcolor: getChartColor('bar'), borderRadius: '2px 2px 0 0', height: '70%' }} />
-                    <Box sx={{ width: '20%', bgcolor: getChartColor('bar'), borderRadius: '2px 2px 0 0', height: '55%' }} />
-                  </Box>
-                  <Box sx={{ position: 'absolute', top: '10%', left: 0, right: 0, height: '2px', bgcolor: getChartColor('line') }} />
-                  <Box sx={{ position: 'absolute', top: '30%', left: 0, right: 0, height: '2px', bgcolor: getChartColor('line'), width: '80%' }} />
-                  <Box sx={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', bgcolor: getChartColor('line'), width: '60%' }} />
-                </Box>
-              )}
-            </Box>
-          ) : (
-            <Typography variant="caption" color="text.secondary">
-              No data available
-            </Typography>
-          )}
+          {renderMiniChart()}
         </Box>
       </CardContent>
 
-      <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-        <Typography variant="caption" color="text.secondary">
+      <CardActions sx={{ justifyContent: 'space-between', px: 0.5, py: 0 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
           {multiPairResults.pairs_results.length} pairs
         </Typography>
 
@@ -218,13 +247,14 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           onClick={onExpand}
           sx={{
             color: theme.palette.primary.main,
+            p: 0.5,
             '&:hover': {
               bgcolor: theme.palette.primary.main,
               color: 'white'
             }
           }}
         >
-          <ExpandIcon fontSize="small" />
+          <ExpandIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </CardActions>
     </Card>

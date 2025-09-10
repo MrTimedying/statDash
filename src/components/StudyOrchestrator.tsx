@@ -19,9 +19,7 @@ import {
   Settings as SettingsIcon,
   Folder as FolderIcon,
   MoreVert as MoreIcon,
-  Science as ScienceIcon,
-  Save as SaveIcon,
-  History as HistoryIcon
+  Science as ScienceIcon
 } from '@mui/icons-material';
 import { StudyBuilderCompact } from './StudyBuilderCompact';
 import { SamplePair, SimulationStudy, StudyStatus } from '../types/simulation.types';
@@ -34,7 +32,6 @@ interface StudyOrchestratorProps {
   onStudyUpdate: (studyId: string, updates: Partial<SimulationStudy>) => void;
   onStudyDelete: (studyId: string) => void;
   onRunStudy: (studyId: string) => void;
-  onSaveStudy: (studyId: string) => void;
 }
 
 interface TabPanelProps {
@@ -66,8 +63,7 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
   onStudyCreate,
   onStudyUpdate,
   onStudyDelete,
-  onRunStudy,
-  onSaveStudy
+  onRunStudy
 }) => {
   const [tabValue, setTabValue] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -152,7 +148,7 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
 
   const getStatusIcon = (status: StudyStatus) => {
     switch (status) {
-      case 'completed': return <SaveIcon sx={{ fontSize: 12 }} />;
+      case 'completed': return <ScienceIcon sx={{ fontSize: 12 }} />;
       case 'running': return <PlayIcon sx={{ fontSize: 12 }} />;
       case 'error': return <SettingsIcon sx={{ fontSize: 12 }} />;
       default: return <ScienceIcon sx={{ fontSize: 12 }} />;
@@ -176,7 +172,7 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
         {studies.length === 0 ? (
           <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
             <FolderIcon sx={{ fontSize: 24, color: 'text.disabled', mb: 1 }} />
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '11px' }}>
               No studies yet
             </Typography>
           </Paper>
@@ -202,7 +198,7 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
                   {getStatusIcon(study.status)}
                 </Box>
 
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1 }}>
                   <Typography
                     variant="caption"
                     sx={{
@@ -247,69 +243,32 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
     </Box>
   );
 
-  const renderStudyActions = () => (
-    <Box sx={{ p: 1 }}>
-      <Typography variant="subtitle2" sx={{ fontSize: '11px', fontWeight: 600, mb: 1 }}>
-        Study Actions
-      </Typography>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<PlayIcon sx={{ fontSize: 14 }} />}
-          onClick={() => currentStudy && onRunStudy(currentStudy.id)}
-          disabled={!currentStudy || currentStudy.status === 'running'}
-          fullWidth
-          sx={{ height: 28, fontSize: '11px', textTransform: 'none' }}
-        >
-          {currentStudy?.status === 'running' ? 'Running...' : 'Run Study'}
-        </Button>
-
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SaveIcon sx={{ fontSize: 14 }} />}
-          onClick={() => currentStudy && onSaveStudy(currentStudy.id)}
-          disabled={!currentStudy}
-          fullWidth
-          sx={{ height: 28, fontSize: '11px', textTransform: 'none' }}
-        >
-          Save Study
-        </Button>
-
-        <Button
-          variant="text"
-          size="small"
-          startIcon={<HistoryIcon sx={{ fontSize: 14 }} />}
-          disabled={!currentStudy}
-          fullWidth
-          sx={{ height: 28, fontSize: '11px', textTransform: 'none' }}
-        >
-          View History
-        </Button>
-      </Box>
-
-      {currentStudy && (
-        <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
-            Last updated: {new Date(currentStudy.updated_at).toLocaleDateString()}
-          </Typography>
-          <Typography variant="caption" sx={{ fontSize: '10px', color: 'text.secondary' }}>
-            Created: {new Date(currentStudy.created_at).toLocaleDateString()}
-          </Typography>
-        </Box>
-      )}
-    </Box>
-  );
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', overflow: 'auto' }}>
       {/* Header */}
-      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" sx={{ fontSize: '14px', fontWeight: 600 }}>
           Study Orchestrator
         </Typography>
+        {currentStudy && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PlayIcon sx={{ fontSize: 14 }} />}
+            onClick={() => onRunStudy(currentStudy.id)}
+            disabled={currentStudy.status === 'running'}
+            sx={{
+              height: 28,
+              fontSize: '11px',
+              textTransform: 'none',
+              px: 1.5,
+              minWidth: 'auto'
+            }}
+          >
+            {currentStudy.status === 'running' ? 'Running...' : 'Run'}
+          </Button>
+        )}
       </Box>
 
       {/* Tabs */}
@@ -356,9 +315,6 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
         </TabPanel>
       </Box>
 
-      {/* Actions Footer */}
-      <Divider />
-      {renderStudyActions()}
 
       {/* Context Menu */}
       <Menu

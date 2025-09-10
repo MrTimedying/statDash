@@ -17,12 +17,16 @@ interface DistributionCurveChartProps {
   multiPairResults: MultiPairResults;
   width?: number;
   height?: number;
+  showLegend?: boolean;
+  mini?: boolean;
 }
 
 export const DistributionCurveChart: React.FC<DistributionCurveChartProps> = ({
   multiPairResults,
   width = 600,
-  height = 400
+  height = 400,
+  showLegend = true,
+  mini = false
 }) => {
   const simulationStore = useSimulationStore();
 
@@ -116,6 +120,25 @@ export const DistributionCurveChart: React.FC<DistributionCurveChartProps> = ({
   }, [multiPairResults]);
 
   if (!chartData.length) {
+    if (mini) {
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9f9f9'
+        }}>
+          <span style={{ color: '#666', fontSize: '12px' }}>
+            {!simulationStore.currentSession?.parameters.pairs?.length
+              ? 'No pair parameters available'
+              : 'No distribution data available'
+            }
+          </span>
+        </div>
+      );
+    }
     return (
       <ChartContainer
         title="Sample Distribution Curves"
@@ -140,6 +163,48 @@ export const DistributionCurveChart: React.FC<DistributionCurveChartProps> = ({
           </span>
         </div>
       </ChartContainer>
+    );
+  }
+
+  if (mini) {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart
+          data={chartData}
+          margin={{
+            top: 5,
+            right: 5,
+            left: 5,
+            bottom: 5,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="x"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+          />
+          <YAxis />
+          <Tooltip
+            formatter={(value: any, name: string) => [
+              Number(value).toFixed(3),
+              name
+            ]}
+            labelFormatter={(label) => `Value: ${label}`}
+          />
+          {lines.map((line, index) => (
+            <Line
+              key={index}
+              type="monotone"
+              dataKey={line.dataKey}
+              stroke={line.stroke}
+              strokeWidth={line.strokeWidth}
+              name={line.name}
+              dot={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
     );
   }
 
@@ -176,7 +241,7 @@ export const DistributionCurveChart: React.FC<DistributionCurveChartProps> = ({
             ]}
             labelFormatter={(label) => `Value: ${label}`}
           />
-          <Legend />
+          {showLegend && <Legend />}
           {lines.map((line, index) => (
             <Line
               key={index}

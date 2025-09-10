@@ -19,13 +19,17 @@ interface PValueBarChartProps {
   significanceLevels: number[];
   width?: number;
   height?: number;
+  showLegend?: boolean;
+  mini?: boolean;
 }
 
 export const PValueBarChart: React.FC<PValueBarChartProps> = ({
   multiPairResults,
   significanceLevels,
   width = 600,
-  height = 400
+  height = 400,
+  showLegend = true,
+  mini = false
 }) => {
   const chartData = useMemo(() => {
     if (!multiPairResults?.pairs_results?.length) return [];
@@ -76,6 +80,20 @@ export const PValueBarChart: React.FC<PValueBarChartProps> = ({
   }, [significanceLevels]);
 
   if (!chartData.length) {
+    if (mini) {
+      return (
+        <div style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9f9f9'
+        }}>
+          <span style={{ color: '#666', fontSize: '12px' }}>No p-value data available</span>
+        </div>
+      );
+    }
     return (
       <ChartContainer
         title="P-Value Distribution"
@@ -95,6 +113,52 @@ export const PValueBarChart: React.FC<PValueBarChartProps> = ({
           <span style={{ color: '#666' }}>No p-value data available</span>
         </div>
       </ChartContainer>
+    );
+  }
+
+  if (mini) {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          margin={{
+            top: 5,
+            right: 5,
+            left: 5,
+            bottom: 5,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="pair"
+            angle={-45}
+            textAnchor="end"
+            height={40}
+            interval={0}
+            fontSize={10}
+          />
+          <YAxis
+            domain={[0, 1]}
+            fontSize={10}
+          />
+          <Tooltip
+            formatter={(value: any, name: string, props: any) => [
+              `${Number(value).toFixed(4)} (${props.payload.significance})`,
+              'P-Value'
+            ]}
+            labelFormatter={(label) => `Pair: ${label}`}
+          />
+          <Bar
+            dataKey="pValue"
+            name="P-Value"
+            radius={[2, 2, 0, 0]}
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     );
   }
 
@@ -133,7 +197,7 @@ export const PValueBarChart: React.FC<PValueBarChartProps> = ({
             ]}
             labelFormatter={(label) => `Pair: ${label}`}
           />
-          <Legend />
+          {showLegend && <Legend />}
           {significanceReferenceLines}
           <Bar
             dataKey="pValue"
@@ -164,7 +228,7 @@ export const PValueBarChart: React.FC<PValueBarChartProps> = ({
                   width: '12px',
                   height: '12px',
                   backgroundColor: threshold <= 0.01 ? '#ff4d4f' :
-                                   threshold <= 0.05 ? '#faad14' : '#1890ff',
+                    threshold <= 0.05 ? '#faad14' : '#1890ff',
                   borderRadius: '2px'
                 }}
               />
