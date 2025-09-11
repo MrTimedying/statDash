@@ -1,6 +1,6 @@
 // Chart utility functions for StatDash
 
-import { ChartData, ChartDataset, CHART_COLORS, SIGNIFICANCE_COLORS } from '../types/chart.types';
+import { ChartData, ChartDataset, CHART_COLORS, SIGNIFICANCE_COLORS, BLUEPRINT_COLORS } from '../types/chart.types';
 
 /**
  * Generate a color palette for chart datasets
@@ -29,6 +29,31 @@ export const generateColorPalette = (count: number): string[] => {
   }
 
   return colors;
+};
+
+/**
+ * Generate blueprint-style gray color palette
+ */
+export const generateBlueprintGrayPalette = (count: number): string[] => {
+  if (count <= BLUEPRINT_COLORS.grays.length) {
+    return BLUEPRINT_COLORS.grays.slice(0, count);
+  }
+
+  // Extend with darker grays if needed
+  const colors = [...BLUEPRINT_COLORS.grays];
+  for (let i = BLUEPRINT_COLORS.grays.length; i < count; i++) {
+    const intensity = Math.max(0, 100 - (i * 10));
+    colors.push(`rgb(${intensity}, ${intensity}, ${intensity})`);
+  }
+
+  return colors;
+};
+
+/**
+ * Get blueprint-style significance colors
+ */
+export const getBlueprintSignificanceColor = (pValue: number): string => {
+  return pValue <= 0.05 ? BLUEPRINT_COLORS.significant : BLUEPRINT_COLORS.notSignificant;
 };
 
 /**

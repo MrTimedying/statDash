@@ -4,8 +4,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import DashboardView from './DashboardView';
 import { MaterialThemeProvider } from './components/MaterialThemeProvider';
 import { AppHeader } from './components/Header';
-import { StudyOrchestrator } from './components/StudyOrchestrator';
-import { ParameterTuner } from './components/ParameterTuner';
+import { StudyOrchestrator } from './components/study-orchestrator/StudyOrchestrator';
+import { ParameterTuner } from './components/parameter-tuner/ParameterTuner';
 import './App.css';
 
 // Import new types and stores
@@ -180,7 +180,10 @@ const StudyManager: React.FC = () => {
         decimal_places: 3,
         include_confidence_intervals: true,
         include_effect_sizes: true,
-        export_formats: ['json', 'csv']
+        export_formats: ['json', 'csv'],
+        chart_animations: true,
+        color_blind_safe: false,
+        theme: 'light' as const
       }
     }
   };
@@ -226,7 +229,10 @@ const StudyManager: React.FC = () => {
                     decimal_places: 3,
                     include_confidence_intervals: true,
                     include_effect_sizes: true,
-                    export_formats: ['json', 'csv']
+                    export_formats: ['json', 'csv'],
+                    chart_animations: true,
+                    color_blind_safe: false,
+                    theme: 'light' as const
                   }
                 }
               },
@@ -294,7 +300,10 @@ const StudyManager: React.FC = () => {
                     decimal_places: 3,
                     include_confidence_intervals: true,
                     include_effect_sizes: true,
-                    export_formats: ['json', 'csv']
+                    export_formats: ['json', 'csv'],
+                    chart_animations: true,
+                    color_blind_safe: false,
+                    theme: 'light' as const
                   }
                 }
               },
@@ -448,19 +457,11 @@ const StudyManager: React.FC = () => {
         <Panel ref={rightPanelRef} defaultSize={20} minSize={15} maxSize={35} style={{ height: '100%' }}>
           <ParameterTuner
             globalSettings={currentSession?.parameters.global_settings || defaultParameters.global_settings}
-            uiPreferences={currentSession?.parameters.ui_preferences || defaultParameters.ui_preferences}
             analysisSettings={defaultParameters.analysis_settings}
             onGlobalSettingsChange={(settings) => {
               if (currentSession) {
                 simulationStore.updateGlobalSettings(settings);
               }
-            }}
-            onUIPreferencesChange={(preferences) => {
-              uiStore.updatePreferences({
-                decimalPlaces: preferences.decimal_places,
-                chartAnimations: preferences.chart_animations,
-                colorBlindSafe: preferences.color_blind_safe,
-              });
             }}
             onAnalysisSettingsChange={(settings) => {
               // Analysis settings would be handled by simulation store if needed

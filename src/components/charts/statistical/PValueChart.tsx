@@ -14,9 +14,13 @@ const PValueHistogram: React.FC<PValueChartProps> = ({
   const chartStore = useChartStore();
   const simulationStore = useSimulationStore();
 
-  // Get current session results
+  // Get current session results and global settings
   const currentSession = simulationStore.currentSession;
   const multiPairResults = currentSession?.results;
+  const globalSettings = currentSession?.parameters.global_settings;
+
+  // Use the first significance threshold from global settings, or fallback to prop/default
+  const activeThreshold = globalSettings?.significance_levels[0] || significanceThreshold;
 
   useEffect(() => {
     if (multiPairResults && multiPairResults.pairs_results.length > 0) {
@@ -46,7 +50,7 @@ const PValueHistogram: React.FC<PValueChartProps> = ({
               interactive: true,
               animation: true,
               showConfidenceIntervals: false,
-              significanceThreshold,
+              significanceThreshold: activeThreshold,
               effectSizeInterpretation: false,
               theme: 'light',
               colorScheme: ['#8884d8', '#82ca9d', '#ffc658', '#ff7300'],
@@ -56,7 +60,7 @@ const PValueHistogram: React.FC<PValueChartProps> = ({
         }
       }
     }
-  }, [multiPairResults, chartId, chartStore, significanceThreshold]);
+  }, [multiPairResults, chartId, chartStore, activeThreshold, globalSettings]);
 
   // Get chart data from store
   const chart = chartStore.charts[chartId];
@@ -106,7 +110,7 @@ const PValueHistogram: React.FC<PValueChartProps> = ({
                   position: 'relative',
                   cursor: 'pointer'
                 }}
-                title={`Range: ${bin.bin_start.toFixed(3)} - ${bin.bin_end.toFixed(3)}\nCount: ${bin.count}\n${isSignificant ? 'Significant' : 'Not Significant'}`}
+                title={`Range: ${bin.bin_start.toFixed(3)} - ${bin.bin_end.toFixed(3)}\nCount: ${bin.count}\n${isSignificant ? `Significant (p < ${activeThreshold})` : `Not Significant (p ≥ ${activeThreshold})`}`}
               >
                 <div style={{
                   position: 'absolute',
@@ -161,7 +165,7 @@ const PValueHistogram: React.FC<PValueChartProps> = ({
           height: '16px',
           backgroundColor: SIGNIFICANCE_COLORS.significant
         }}></div>
-        <span>{'Significant (p < 0.05)'}</span>
+        <span>{`Significant (p < ${activeThreshold})`}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
         <div style={{

@@ -24,8 +24,9 @@ import {
   MultiPairResults,
   PairResult
 } from '../types/simulation.types';
+import { useSimulationStore } from '../stores/simulation.store';
 
-// Define the table data type
+// Define the table data type - will be extended dynamically
 type TableRowData = {
   pair_name: string;
   sample_size: number;
@@ -33,9 +34,7 @@ type TableRowData = {
   power: number;
   ci_coverage: number;
   ci_width: number;
-  p_001: number;
-  p_005: number;
-  p_010: number;
+  [key: string]: any; // For dynamic significance columns
 };
 
 interface TanStackResultsTableProps {
@@ -47,30 +46,39 @@ export const TanStackResultsTable: React.FC<TanStackResultsTableProps> = ({
 }) => {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
+  // Get significance levels from global settings
+  const currentSession = useSimulationStore((state) => state.currentSession);
+  const significanceLevels = currentSession?.parameters.global_settings.significance_levels || [0.01, 0.05, 0.10];
+
   // Create column helper for type-safe column definitions
   const columnHelper = createColumnHelper<TableRowData>();
 
-  // Transform data to table format
+  // Transform data to table format with dynamic significance columns
   const tableData: TableRowData[] = React.useMemo(() =>
     results.pairs_results.map((pairResult: PairResult) => {
       const power = pairResult.significance_analysis.by_threshold[0.05]?.percentage || 0;
 
-      return {
+      const rowData: TableRowData = {
         pair_name: pairResult.pair_name,
         sample_size: pairResult.aggregated_stats.total_count,
         effect_size: pairResult.effect_size_analysis.mean,
         power: power / 100,
         ci_coverage: pairResult.aggregated_stats.ci_coverage,
         ci_width: pairResult.aggregated_stats.mean_ci_width,
-        p_001: (pairResult.significance_analysis.by_threshold[0.01]?.percentage || 0) / 100,
-        p_005: (pairResult.significance_analysis.by_threshold[0.05]?.percentage || 0) / 100,
-        p_010: (pairResult.significance_analysis.by_threshold[0.10]?.percentage || 0) / 100
       };
-    }), [results]
+
+      // Add dynamic significance columns
+      significanceLevels.forEach(level => {
+        const key = `p_${level.toString().replace('.', '_')}`;
+        rowData[key] = (pairResult.significance_analysis.by_threshold[level]?.percentage || 0) / 100;
+      });
+
+      return rowData;
+    }), [results, significanceLevels]
   );
 
-  // Define columns with pandas-like styling
-  const columns: ColumnDef<TableRowData, any>[] = [
+  // Define columns with pandas-like styling - base columns
+  const baseColumns: ColumnDef<TableRowData, any>[] = [
     columnHelper.accessor('pair_name', {
       header: 'pair_name',
       cell: (info) => (
@@ -125,34 +133,24 @@ export const TanStackResultsTable: React.FC<TanStackResultsTableProps> = ({
       ),
       size: 100,
     }),
-    columnHelper.accessor('p_001', {
-      header: 'p_0.01',
-      cell: (info) => (
-        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', textAlign: 'right' }}>
-          {(info.getValue() * 100).toFixed(2)}%
-        </Box>
-      ),
-      size: 80,
-    }),
-    columnHelper.accessor('p_005', {
-      header: 'p_0.05',
-      cell: (info) => (
-        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', textAlign: 'right' }}>
-          {(info.getValue() * 100).toFixed(2)}%
-        </Box>
-      ),
-      size: 80,
-    }),
-    columnHelper.accessor('p_010', {
-      header: 'p_0.10',
-      cell: (info) => (
-        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', textAlign: 'right' }}>
-          {(info.getValue() * 100).toFixed(2)}%
-        </Box>
-      ),
-      size: 80,
-    }),
   ];
+
+  // Generate dynamic significance columns
+  const significanceColumns: ColumnDef<TableRowData, any>[] = significanceLevels.map(level => {
+    const key = `p_${level.toString().replace('.', '_')}`;
+    return columnHelper.accessor(key, {
+      header: `p_${level}`,
+      cell: (info) => (
+        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem', textAlign: 'right' }}>
+          {(info.getValue() * 100).toFixed(2)}%
+        </Box>
+      ),
+      size: 80,
+    });
+  });
+
+  // Combine base columns with dynamic significance columns
+  const columns: ColumnDef<TableRowData, any>[] = [...baseColumns, ...significanceColumns];
 
   // Create the table instance
   const table = useReactTable({

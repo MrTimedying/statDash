@@ -21,8 +21,8 @@ import {
   MoreVert as MoreIcon,
   Science as ScienceIcon
 } from '@mui/icons-material';
-import { StudyBuilderCompact } from './StudyBuilderCompact';
-import { SamplePair, SimulationStudy, StudyStatus } from '../types/simulation.types';
+import { StudyBuilderCompact } from './components/StudyBuilderCompact';
+import { SamplePair, SimulationStudy, StudyStatus } from '../../types/simulation.types';
 
 interface StudyOrchestratorProps {
   currentStudy: SimulationStudy | null;
@@ -117,7 +117,10 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
             decimal_places: 3,
             include_confidence_intervals: true,
             include_effect_sizes: true,
-            export_formats: ['json', 'csv']
+            export_formats: ['json', 'csv'],
+            chart_animations: true,
+            color_blind_safe: false,
+            theme: 'light' as const
           }
         }
       },

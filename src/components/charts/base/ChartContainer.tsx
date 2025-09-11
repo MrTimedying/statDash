@@ -11,6 +11,7 @@ interface ChartContainerProps extends ChartProps {
   onExport?: (format: 'png' | 'svg' | 'pdf') => void;
   onSettingsChange?: () => void;
   showControls?: boolean;
+  responsive?: boolean; // New prop for responsive behavior
 }
 
 export const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -23,6 +24,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onExport,
   onSettingsChange,
   showControls = true,
+  responsive = false,
   config
 }) => {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -70,10 +72,13 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     <Paper
       ref={containerRef}
       sx={{
-        width: `${width}px`,
-        minHeight: `${height}px`,
+        width: responsive ? '100%' : `${width}px`,
+        minHeight: responsive ? 0 : `${height}px`,
+        height: responsive ? '100%' : `${height}px`,
         position: 'relative',
-        overflow: 'hidden'
+        overflow: responsive ? 'auto' : 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
       {/* Chart Header */}
@@ -136,9 +141,10 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         sx={{
           position: 'relative',
           width: '100%',
-          height: `${height - 60}px`, // Subtract header height
+          flex: 1,
+          minHeight: responsive ? 0 : `${height - 60}px`, // Subtract header height
           display: 'flex',
-          alignItems: 'center',
+          alignItems: responsive ? 'stretch' : 'center',
           justifyContent: 'center'
         }}
       >

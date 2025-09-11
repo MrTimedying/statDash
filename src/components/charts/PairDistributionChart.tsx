@@ -9,7 +9,8 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  AreaChart
+  AreaChart,
+  ReferenceLine
 } from 'recharts';
 import { ChartContainer } from './base/ChartContainer';
 import { MultiPairResults } from '../../types/simulation.types';
@@ -87,7 +88,10 @@ export const PairDistributionChart: React.FC<PairDistributionChartProps> = ({
     if (!multiPairResults?.pairs_results?.length) return [];
 
     const pairResult = multiPairResults.pairs_results.find(p => p.pair_id === pairId);
-    if (!pairResult) return [];
+    const originalPairs = simulationStore.currentSession?.parameters.pairs || [];
+    const originalPair = originalPairs.find(p => p.id === pairId);
+
+    if (!pairResult || !originalPair) return [];
 
     const colors = ['#8884d8', '#82ca9d'];
 
@@ -96,7 +100,7 @@ export const PairDistributionChart: React.FC<PairDistributionChartProps> = ({
         dataKey: 'g1',
         stroke: colors[0],
         strokeWidth: 2,
-        name: `${pairResult.pair_name} - Group 1`,
+        name: `Group 1 (μ=${originalPair.group1.mean.toFixed(2)}, σ=${originalPair.group1.std.toFixed(2)})`,
         fill: showFill ? colors[0] : undefined,
         fillOpacity: showFill ? 0.3 : undefined
       },
@@ -104,12 +108,12 @@ export const PairDistributionChart: React.FC<PairDistributionChartProps> = ({
         dataKey: 'g2',
         stroke: colors[1],
         strokeWidth: 2,
-        name: `${pairResult.pair_name} - Group 2`,
+        name: `Group 2 (μ=${originalPair.group2.mean.toFixed(2)}, σ=${originalPair.group2.std.toFixed(2)})`,
         fill: showFill ? colors[1] : undefined,
         fillOpacity: showFill ? 0.3 : undefined
       }
     ];
-  }, [multiPairResults, pairId, showFill]);
+  }, [multiPairResults, pairId, showFill, simulationStore.currentSession?.parameters.pairs]);
 
   const originalPair = useMemo(() => {
     const originalPairs = simulationStore.currentSession?.parameters.pairs || [];
@@ -218,18 +222,14 @@ export const PairDistributionChart: React.FC<PairDistributionChartProps> = ({
       width={width}
       height={height}
     >
-      <div style={{ fontSize: '12px', marginBottom: '8px', color: '#666' }}>
-        Group 1: μ={originalPair.group1.mean}, σ={originalPair.group1.std} | {' '}
-        Group 2: μ={originalPair.group2.mean}, σ={originalPair.group2.std}
-      </div>
       <ResponsiveContainer width="100%" height="100%">
         <ChartComponent
           data={chartData}
           margin={{
-            top: 5,
-            right: 30,
+            top: 20,
+            right: 20,
             left: 20,
-            bottom: 5,
+            bottom: 20,
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
@@ -249,7 +249,59 @@ export const PairDistributionChart: React.FC<PairDistributionChartProps> = ({
             ]}
             labelFormatter={(label) => `Value: ${label}`}
           />
-          {showLegend && <Legend />}
+
+          {/* Reference line at x=0 (central value) */}
+          <ReferenceLine
+            x={0}
+            stroke="#666"
+            strokeDasharray="5 5"
+            label={{
+              value: "Central (0)",
+              position: "top",
+              fontSize: 10,
+              fill: "#666"
+            }}
+          />
+
+          {/* Reference lines at group means */}
+          <ReferenceLine
+            x={originalPair.group1.mean}
+            stroke="#8884d8"
+            strokeDasharray="3 3"
+            strokeWidth={1}
+            label={{
+              value: `μ₁=${originalPair.group1.mean.toFixed(2)}`,
+              position: "top",
+              fontSize: 9,
+              fill: "#8884d8",
+              offset: 5
+            }}
+          />
+          <ReferenceLine
+            x={originalPair.group2.mean}
+            stroke="#82ca9d"
+            strokeDasharray="3 3"
+            strokeWidth={1}
+            label={{
+              value: `μ₂=${originalPair.group2.mean.toFixed(2)}`,
+              position: "bottom",
+              fontSize: 9,
+              fill: "#82ca9d",
+              offset: 5
+            }}
+          />
+
+          {/* Legend positioned inside chart area */}
+          {showLegend && (
+            <Legend
+              wrapperStyle={{
+                paddingTop: '10px',
+                fontSize: '11px'
+              }}
+              iconType="line"
+            />
+          )}
+
           {lines.map((line, index) => (
             showFill ? (
               <Area

@@ -253,6 +253,9 @@ export interface ReportingPreferences {
   include_confidence_intervals: boolean;
   include_effect_sizes: boolean;
   export_formats: string[];
+  chart_animations: boolean;
+  color_blind_safe: boolean;
+  theme: 'light' | 'dark' | 'auto';
 }
 
 export interface StudyResults {

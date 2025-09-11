@@ -44,6 +44,7 @@ export const ChartModal: React.FC<ChartModalProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
 
   const currentChart = charts[currentIndex];
 
@@ -74,8 +75,12 @@ export const ChartModal: React.FC<ChartModalProps> = ({
 
     const chartProps = {
       multiPairResults,
-      width: isMobile ? 300 : 800,
-      height: isMobile ? 250 : 500,
+      // Dynamic sizing based on screen size for better modal utilization
+      ...(currentChart.props?.responsive === false ? {
+        width: isMobile ? 280 : isTablet ? 600 : isLargeScreen ? 1000 : 800,
+        height: isMobile ? 220 : isTablet ? 350 : isLargeScreen ? 600 : 500
+      } : {}),
+      responsive: true, // Enable responsive behavior for modal
       ...currentChart.props // Include any additional props from the chart factory
     };
 
@@ -136,13 +141,18 @@ export const ChartModal: React.FC<ChartModalProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth={isLargeScreen ? "xl" : isTablet ? "lg" : "md"}
       fullWidth
       fullScreen={isMobile}
       sx={{
         '& .MuiDialog-paper': {
-          height: isMobile ? '100%' : '90vh',
-          maxHeight: isMobile ? '100%' : '90vh'
+          height: isMobile ? '100%' : isTablet ? '85vh' : isLargeScreen ? '90vh' : '80vh',
+          maxHeight: isMobile ? '100%' : isTablet ? '85vh' : isLargeScreen ? '90vh' : '80vh',
+          width: isMobile ? '100%' : isTablet ? '90vw' : isLargeScreen ? '95vw' : '85vw',
+          maxWidth: isMobile ? '100%' : isTablet ? '90vw' : isLargeScreen ? '95vw' : '85vw',
+          display: 'flex',
+          flexDirection: 'column',
+          margin: isMobile ? 0 : theme.spacing(2)
         }
       }}
     >
@@ -172,7 +182,7 @@ export const ChartModal: React.FC<ChartModalProps> = ({
       </Box>
 
       {/* Content */}
-      <DialogContent sx={{ p: 0, position: 'relative' }}>
+      <DialogContent sx={{ p: 0, flex: 1, display: 'flex', overflow: 'auto', position: 'relative' }}>
         {/* Navigation Arrows - Desktop */}
         {!isMobile && (
           <>
@@ -215,7 +225,15 @@ export const ChartModal: React.FC<ChartModalProps> = ({
         )}
 
         {/* Chart Content */}
-        {renderChartContent()}
+        <Box sx={{
+          flex: 1,
+          minHeight: 0,
+          p: isMobile ? 1 : isTablet ? 1.5 : 2,
+          position: 'relative',
+          overflow: 'auto'
+        }}>
+          {renderChartContent()}
+        </Box>
       </DialogContent>
 
       {/* Footer */}

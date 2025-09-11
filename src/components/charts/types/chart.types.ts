@@ -135,5 +135,24 @@ export const CHART_THEMES = {
     backgroundColor: '#1f1f1f',
     gridColor: '#333333',
     textColor: '#ffffff'
+  },
+  blueprint: {
+    backgroundColor: '#ffffff',
+    gridColor: '#e0e0e0',
+    textColor: '#000000',
+    axisLine: false,
+    tickLine: false,
+    grid: true,
+    spines: false
   }
+};
+
+// Blueprint-specific color schemes matching matplotlib/seaborn
+export const BLUEPRINT_COLORS = {
+  grays: ['#ffffff', '#f0f0f0', '#d3d3d3', '#a9a9a9', '#808080', '#696969', '#000000'],
+  populationA: '#f0f0f0', // Light gray
+  populationB: '#dc143c', // Crimson
+  significant: '#ffffff', // White
+  notSignificant: '#d3d3d3', // Light gray
+  referenceLine: '#dc143c' // Crimson
 };

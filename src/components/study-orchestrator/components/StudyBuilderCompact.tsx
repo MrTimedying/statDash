@@ -20,7 +20,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import { SamplePair, DistributionType } from '../types/simulation.types';
+import { SamplePair, DistributionType } from '../../../types/simulation.types';
 
 interface StudyBuilderCompactProps {
   pairs: SamplePair[];
