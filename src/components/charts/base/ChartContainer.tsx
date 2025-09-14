@@ -12,6 +12,7 @@ interface ChartContainerProps extends ChartProps {
   onSettingsChange?: () => void;
   showControls?: boolean;
   responsive?: boolean; // New prop for responsive behavior
+  debounceMs?: number; // Debounce resize events to prevent flickering
 }
 
 export const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -25,10 +26,13 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onSettingsChange,
   showControls = true,
   responsive = false,
+  debounceMs = 150, // Default debounce to prevent flickering
   config
 }) => {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [dimensions, setDimensions] = useState({ width: width, height: height });
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchor(event.currentTarget);
@@ -42,6 +46,41 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     onExport?.(format);
     handleMenuClose();
   };
+
+  // Debounced resize handler to prevent flickering
+  const handleResize = React.useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (containerRef.current && responsive) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({
+          width: rect.width,
+          height: rect.height - 60 // Subtract header height
+        });
+      }
+    }, debounceMs);
+  }, [responsive, debounceMs]);
+
+  // Set up resize observer for responsive mode
+  useEffect(() => {
+    if (!responsive || !containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(containerRef.current);
+
+    // Initial measurement
+    handleResize();
+
+    return () => {
+      resizeObserver.disconnect();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [responsive, handleResize]);
 
   if (error) {
     return (
@@ -155,7 +194,9 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
             </Typography>
           </Box>
         ) : (
-          children
+          <Box sx={{ width: '100%', height: '100%' }}>
+            {children}
+          </Box>
         )}
       </Box>
     </Paper>

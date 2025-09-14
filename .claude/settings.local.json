@@ -1,0 +1,11 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "digestible-docs"
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__digestible-docs__query_documents"
+    ]
+  }
+}

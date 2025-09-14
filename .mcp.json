@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "digestible-docs": {
+      "type": "stdio",
+      "command": "d:/Development/MCP_statDash/venv/Scripts/python.exe",
+      "args": ["-m", "src.mcp.mcp_server"],
+      "cwd": "d:/Development/MCP_statDash",
+      "env": {
+        "PYTHONPATH": "d:/Development/MCP_statDash"
+      }
+    }
+  }
+}

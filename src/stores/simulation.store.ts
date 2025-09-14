@@ -9,6 +9,7 @@ import {
 } from '../types/simulation.types';
 import { databaseService } from '../services/database.service';
 import { multiPairSimulationEngine } from '../services/multi-pair-simulation';
+import { useChartsStore } from './charts.store';
 
 interface SimulationState {
   // Current session state
@@ -157,6 +158,12 @@ export const useSimulationStore = create<SimulationStore>()(
                 currentSession: normalizedSession,
                 hasUnsavedChanges: false,
               });
+
+              // Update chart store if session has results
+              if (normalizedSession.results) {
+                useChartsStore.getState().updateCurrentResults(normalizedSession.results);
+              }
+
               console.log('Session loaded successfully:', sessionId);
             } else {
               set({ error: 'Session not found' });
@@ -246,7 +253,11 @@ export const useSimulationStore = create<SimulationStore>()(
               resultsStale: false, // Clear stale flag when new results are generated
             }));
 
+            // Update chart store with new results
+            useChartsStore.getState().updateCurrentResults(results);
+
             console.log('Session updated with simulation results');
+            console.log('Chart store updated with new simulation results');
           } catch (error) {
             console.error('Simulation failed:', error);
             set({

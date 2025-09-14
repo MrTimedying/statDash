@@ -1,4 +1,9 @@
+import React from 'react';
 import { MultiPairResults, SamplePair } from '../../types/simulation.types';
+
+// Import chart components
+import { GardnerAltmanEstimationPlot } from './GardnerAltmanEstimationPlot';
+import { PValueVariabilityChart } from './PValueVariabilityChart';
 
 export interface DynamicChartInfo {
   id: string;
@@ -22,125 +27,38 @@ export const generateDynamicCharts = (
     return charts;
   }
 
-  // Generate one distribution chart per pair
-  pairs.forEach((pair, index) => {
-    const pairResult = multiPairResults.pairs_results.find(p => p.pair_id === pair.id);
-    if (pairResult) {
-      charts.push({
-        id: `dist-${pair.id}`,
-        title: `${pair.name} Distribution`,
-        description: `Theoretical distribution curves for ${pair.name} (μ₁=${pair.group1.mean}, σ₁=${pair.group1.std} | μ₂=${pair.group2.mean}, σ₂=${pair.group2.std})`,
-        type: 'distribution',
-        pairId: pair.id,
-        component: undefined, // Will be resolved by the consumer
-        props: {
-          multiPairResults,
-          pairId: pair.id,
-          showFill: true
-        },
-        category: 'distributions'
-      });
-    }
+  // Add Gardner-Altman estimation plot
+  charts.push({
+    id: 'gardner-altman-estimation',
+    title: 'Gardner-Altman Estimation Plot',
+    description: 'Estimation plot showing effect sizes with confidence intervals for each pair comparison',
+    type: 'comparison',
+    component: GardnerAltmanEstimationPlot,
+    props: {
+      multiPairResults,
+      significanceLevels,
+      responsive: true,
+      showLegend: false,
+      mini: false
+    },
+    category: 'analysis'
   });
 
-  // Generate aggregate comparison charts
-  if (multiPairResults.pairs_results.length > 1) {
-    // Add individual p-value histograms for each pair
-    pairs.forEach((pair) => {
-      const pairResult = multiPairResults.pairs_results.find(p => p.pair_id === pair.id);
-      if (pairResult) {
-        charts.push({
-          id: `pvalue-${pair.id}`,
-          title: `${pair.name} P-Value Histogram`,
-          description: `P-value distribution for ${pair.name} with significance threshold`,
-          type: 'bar',
-          pairId: pair.id,
-          component: undefined, // Will be resolved by the consumer
-          props: {
-            multiPairResults,
-            significanceLevels,
-            selectedPairId: pair.id
-          },
-          category: 'distributions'
-        });
-      }
-    });
-
-
-    // Add confidence interval barchart
-    charts.push({
-      id: 'confidence-interval-barchart',
-      title: 'Confidence Intervals',
-      description: 'Visualize confidence intervals for each pair with significance indicators',
-      type: 'bar',
-      component: undefined, // Will be resolved by the consumer
-      props: {
-        multiPairResults,
-        significanceLevels
-      },
-      category: 'comparisons'
-    });
-
-    // Add overlay CI + distribution chart
-    charts.push({
-      id: 'overlay-ci-distribution',
-      title: 'CI + Distribution Overlay',
-      description: 'Overlay confidence intervals on distribution curves',
-      type: 'comparison',
-      component: undefined, // Will be resolved by the consumer
-      props: {
-        multiPairResults,
-        significanceLevels
-      },
-      category: 'comparisons'
-    });
-
-    // Add effect size histogram
-    charts.push({
-      id: 'effect-size-histogram',
-      title: 'Effect Size Distribution',
-      description: 'Histogram of effect sizes across all pairs with categorization',
-      type: 'bar',
-      component: undefined, // Will be resolved by the consumer
-      props: {
-        multiPairResults,
-        effectSizeThresholds: {
-          negligible: 0.2,
-          small: 0.5,
-          medium: 0.8,
-          large: 1.2
-        }
-      },
-      category: 'analysis'
-    });
-
-    // Add population distribution chart
-    charts.push({
-      id: 'population-distribution',
-      title: 'Population Distributions',
-      description: 'Overlaid histograms showing population distributions with KDE',
-      type: 'distribution',
-      component: undefined, // Will be resolved by the consumer
-      props: {
-        multiPairResults
-      },
-      category: 'distributions'
-    });
-
-
-    // Add S-value line chart
-    charts.push({
-      id: 'svalue-line-chart',
-      title: 'S-Value Line Plots',
-      description: 'Line plots of S-values sorted by sample size',
-      type: 'comparison',
-      component: undefined, // Will be resolved by the consumer
-      props: {
-        multiPairResults
-      },
-      category: 'analysis'
-    });
-  }
+  // Add P-Value Variability Chart
+  charts.push({
+    id: 'p-value-variability',
+    title: 'P-Value Variability Across Replications',
+    description: 'Demonstrates how p-values fluctuate across multiple replications of the same study, showing the fickleness of statistical significance',
+    type: 'comparison',
+    component: PValueVariabilityChart,
+    props: {
+      multiPairResults,
+      pairs,
+      numReplications: 20,
+      responsive: true
+    },
+    category: 'analysis'
+  });
 
   return charts;
 };
@@ -148,19 +66,9 @@ export const generateDynamicCharts = (
 // Helper function to get chart categories for organization
 export const getChartCategories = () => [
   {
-    id: 'distributions',
-    title: 'Distribution Curves',
-    description: 'Individual distribution curves for each pair'
-  },
-  {
-    id: 'comparisons',
-    title: 'Comparisons',
-    description: 'Aggregate comparisons across pairs'
-  },
-  {
     id: 'analysis',
-    title: 'Analysis',
-    description: 'Statistical analysis and insights'
+    title: 'Statistical Analysis',
+    description: 'Estimation statistics and effect size analysis'
   }
 ];
 

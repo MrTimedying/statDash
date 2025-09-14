@@ -113,7 +113,7 @@ export const ParameterTuner: React.FC<ParameterTunerProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', borderLeft: '1px solid', borderColor: 'divider' }}>
       {/* Header */}
       <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
@@ -199,19 +199,45 @@ export const ParameterTuner: React.FC<ParameterTunerProps> = ({
       </Box>
 
       {/* Tab Panels */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2, pt: 2.5 }}>
         {/* Simulation Tab */}
         {activeTab === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <TextField
-              label="Simulations"
-              type="number"
-              size="small"
-              value={globalSettings.num_simulations}
-              onChange={(e) => onGlobalSettingsChange({ num_simulations: parseInt(e.target.value) || 1000 })}
-              inputProps={{ min: 100, max: 100000, step: 100 }}
-              sx={{ '& .MuiInputBase-root': { height: '36px', fontSize: '12px' } }}
-            />
+            {/* Simulations and Confidence Level - Same Row */}
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <TextField
+                label="Simulations"
+                type="number"
+                size="small"
+                value={globalSettings.num_simulations}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 1000;
+                  const clampedValue = Math.max(100, Math.min(10000, value));
+                  onGlobalSettingsChange({ num_simulations: clampedValue });
+                }}
+                inputProps={{ min: 100, max: 10000, step: 100 }}
+                sx={{
+                  flex: 1,
+                  '& .MuiInputBase-root': { height: '36px', fontSize: '12px' }
+                }}
+              />
+              <TextField
+                label="Confidence (%)"
+                type="number"
+                size="small"
+                value={(globalSettings.confidence_level * 100).toFixed(0)}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 95;
+                  const clampedValue = Math.max(80, Math.min(99, value));
+                  onGlobalSettingsChange({ confidence_level: clampedValue / 100 });
+                }}
+                inputProps={{ min: 80, max: 99, step: 1 }}
+                sx={{
+                  flex: 1,
+                  '& .MuiInputBase-root': { height: '36px', fontSize: '12px' }
+                }}
+              />
+            </Box>
 
             <FormControl size="small" fullWidth>
               <InputLabel sx={{ fontSize: '12px' }}>Test Type</InputLabel>
@@ -226,22 +252,6 @@ export const ParameterTuner: React.FC<ParameterTunerProps> = ({
                 <MenuItem value="mann_whitney" sx={{ fontSize: '12px' }}>Mann-Whitney U</MenuItem>
               </Select>
             </FormControl>
-
-            <Box>
-              <Typography variant="body2" sx={{ fontSize: '12px', color: 'text.secondary', mb: 1 }}>
-                Confidence Level: {(globalSettings.confidence_level * 100).toFixed(0)}%
-              </Typography>
-              <Slider
-                value={globalSettings.confidence_level}
-                onChange={(_, value) => onGlobalSettingsChange({ confidence_level: value as number })}
-                min={0.8}
-                max={0.99}
-                step={0.01}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(value) => `${(value * 100).toFixed(0)}%`}
-                size="small"
-              />
-            </Box>
           </Box>
         )}
 

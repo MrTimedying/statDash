@@ -45,7 +45,7 @@ const createAppTheme = (mode: 'light' | 'dark' = 'light') => {
       },
     },
     typography: {
-      fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+      fontFamily: '"Rubik", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
       // Condensed typography scale following GRAPHICS_FOUNDATION.md
       h1: {
         fontSize: '1.5rem', // 24px - page titles

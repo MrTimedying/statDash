@@ -64,6 +64,12 @@ export interface PValueChartProps extends ChartProps {
   showConfidenceIntervals?: boolean;
 }
 
+export interface PValueVariabilityChartProps extends ChartProps {
+  numReplications?: number;
+  pairs?: any[];
+  multiPairResults?: any;
+}
+
 export interface EffectSizeChartProps extends ChartProps {
   effectSizeThresholds?: {
     negligible: number;

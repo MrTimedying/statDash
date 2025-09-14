@@ -248,7 +248,7 @@ export const StudyOrchestrator: React.FC<StudyOrchestratorProps> = ({
 
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', overflow: 'auto' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', overflow: 'auto', borderRight: '1px solid', borderColor: 'divider'}}>
       {/* Header */}
       <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" sx={{ fontSize: '14px', fontWeight: 600 }}>
